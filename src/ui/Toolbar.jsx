@@ -20,7 +20,7 @@ function ToolButton({ title, hint, active, accent, wide, onClick, children }) {
       {hint && (
         <span aria-hidden="true" className="pointer-events-none absolute right-[3px] bottom-px font-mono text-[9px] leading-none opacity-55">{hint}</span>
       )}
-      <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded-[9px] bg-ink px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-white opacity-0 shadow-[2px_2px_0_rgba(0,0,0,.18)] transition-opacity delay-150 duration-100 group-hover:opacity-100">{title}</span>
+      <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 rounded-[9px] bg-ink px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-white opacity-0 shadow-[2px_2px_0_rgba(0,0,0,.18)] transition-opacity delay-150 duration-100 group-hover:opacity-100 group-focus-visible:opacity-100">{title}</span>
     </button>
   );
 }
@@ -31,7 +31,7 @@ function Divider() {
 
 export default function Toolbar({ v }) {
   return (
-    <div className="fixed right-3 bottom-[max(12px,env(safe-area-inset-bottom))] left-3 z-20 flex max-w-none flex-nowrap items-center justify-start gap-1.5 overflow-x-auto rounded-2xl border-[1.6px] border-ink-line bg-panel p-2 shadow-[3px_4px_0_rgba(58,64,69,.16)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:right-auto sm:bottom-6 sm:left-1/2 sm:max-w-[calc(100vw-24px)] sm:-translate-x-1/2 sm:justify-center">
+    <div className="fixed right-3 bottom-[max(12px,env(safe-area-inset-bottom))] left-3 z-20 flex max-w-none flex-nowrap items-center justify-start gap-1.5 overflow-x-auto rounded-2xl border-[1.6px] border-ink-line bg-panel p-2 shadow-[3px_4px_0_rgba(58,64,69,.16)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:right-auto sm:bottom-6 sm:left-1/2 sm:max-w-[calc(100vw-24px)] sm:-translate-x-1/2 sm:justify-center md:overflow-visible">
       <ToolButton title="undo (Cmd/Ctrl+Z)" onClick={v.undo}>
         <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 4L3 7l3.5 3"/><path d="M3 7h8a4 4 0 0 1 0 8H8"/></svg>
       </ToolButton>
