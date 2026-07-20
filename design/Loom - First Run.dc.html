@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,wght@0,300..800;1,300..700&family=Caveat:wght@400..700&display=swap" rel="stylesheet">
+<meta name="design_doc_mode" content="canvas">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e4e8ea; -webkit-font-smoothing: antialiased; font-family: 'Shantell Sans', cursive; }
+  a { color: #7a9a6f; }
+  a:hover { color: #5c7a52; }
+  input { font-family: 'Shantell Sans', cursive; }
+  @keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(122,154,111,0);} 50% { box-shadow: 0 0 0 8px rgba(122,154,111,.16);} }
+  @keyframes floaty2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+</style>
+</helmet>
+
+<svg width="0" height="0" style="position:absolute;pointer-events:none;">
+  <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.2"/></filter>
+  <filter id="edge"><feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.8"/></filter>
+</svg>
+
+<section style="display:flex;flex-direction:column;gap:8px;padding:60px 60px 96px;">
+  <div style="font-family:'Caveat',cursive;font-size:30px;color:#2b3034;font-weight:700;">First-run — two directions</div>
+  <div style="font-size:15px;color:#6c7378;max-width:720px;line-height:1.5;">Both on Loom's paper look. The headline rotates, example prompts fill the input, the mic toggles a listening state, and "example canvas" opens the real board. Tell me an id (1a / 1b).</div>
+
+  <div style="display:flex;gap:64px;align-items:flex-start;flex-wrap:nowrap;margin-top:24px;">
+
+    <!-- ===== 1a — CENTERED CALM ===== -->
+    <div id="1a" style="position:relative;flex:0 0 auto;">
+      <div style="position:absolute;top:-14px;left:-14px;z-index:20;font-family:'Caveat',cursive;font-weight:700;font-size:20px;color:#fff;background:#2b3034;width:44px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px 9px 11px 8px;box-shadow:2px 3px 0 rgba(0,0,0,.15);">1a</div>
+      <div style="font-family:'Caveat',cursive;font-size:26px;font-weight:700;color:#2b3034;margin-bottom:2px;">Centered Calm</div>
+      <div style="font-size:13px;color:#7b8287;margin-bottom:14px;max-width:1120px;line-height:1.4;">Airy and quiet. One input, a few example prompts, and a faint hint of the canvas drifting behind. Least intimidating for someone already overwhelmed.</div>
+
+      <div style="position:relative;width:1120px;height:700px;background:#edf0f1;border:1.5px solid #3a4045;border-radius:16px;overflow:hidden;box-shadow:6px 8px 0 rgba(58,64,69,.10);background-image:radial-gradient(#c8ced1 1px, transparent 1px);background-size:26px 26px;">
+
+        <!-- faint drifting canvas hints -->
+        <div style="position:absolute;left:120px;top:120px;width:130px;height:70px;background:#fbfbfa;border:1.5px solid #b6bec1;border-radius:11px 8px 12px 7px;opacity:.35;animation:floaty2 7s ease-in-out infinite;"></div>
+        <div style="position:absolute;right:150px;top:160px;width:120px;height:66px;background:#fbfbfa;border:1.5px solid #b6bec1;border-radius:10px 9px 11px 8px;opacity:.3;animation:floaty2 8s ease-in-out infinite;"></div>
+        <div style="position:absolute;left:200px;bottom:130px;width:120px;height:66px;background:#fbfbfa;border:1.5px solid #b6bec1;border-radius:9px 11px 8px 12px;opacity:.28;animation:floaty2 9s ease-in-out infinite;"></div>
+        <div style="position:absolute;right:190px;bottom:150px;width:130px;height:70px;background:#fbfbfa;border:1.5px solid #b6bec1;border-radius:11px 8px 12px 8px;opacity:.3;animation:floaty2 7.5s ease-in-out infinite;"></div>
+        <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.25;" fill="none" stroke="#9aa1a5" stroke-width="1.3" stroke-linecap="round"><path d="M250 160 C400 220 520 300 560 330" filter="url(#edge)"/><path d="M900 200 C760 280 640 320 600 345" filter="url(#edge)"/></svg>
+
+        <!-- wordmark -->
+        <div style="position:absolute;top:22px;left:26px;display:flex;align-items:baseline;gap:10px;">
+          <span style="font-family:'Caveat',cursive;font-weight:700;font-size:26px;color:#2b3034;">Loom</span>
+          <span style="font-size:12px;color:#a4abae;">parallel interests, one calm canvas</span>
+        </div>
+
+        <!-- center stack -->
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:760px;text-align:center;">
+          <div style="font-family:'Caveat',cursive;font-weight:700;font-size:44px;color:#2b3034;line-height:1.05;opacity:{{ hOpacity }};transition:opacity .4s ease;min-height:52px;">{{ headline }}</div>
+          <div style="font-size:15px;color:#7b8287;margin-top:8px;margin-bottom:24px;">Type what's on your mind — a whole sentence is fine. I'll untangle it into a map.</div>
+
+          <!-- input bar -->
+          <div style="display:flex;align-items:center;gap:12px;background:#fbfbfa;border:1.8px solid #3a4045;border-radius:16px 13px 15px 12px;padding:12px 14px;box-shadow:3px 4px 0 rgba(58,64,69,.13);text-align:left;">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8a9196" stroke-width="1.8" stroke-linecap="round"><path d="M9 3v12M3 9h12"/></svg>
+            <input value="{{ inputVal }}" onInput="{{ onInput }}" onKeyDown="{{ onKey }}" placeholder="I want to learn Japanese, get fit, and finally ship my game…" style="flex:1;border:none;outline:none;background:transparent;font-size:16px;color:#2b3034;"/>
+            <button onClick="{{ toggleMic }}" title="speak your thoughts" style="width:38px;height:38px;border-radius:50%;background:{{ micBg }};border:1.6px solid #3a4045;display:flex;align-items:center;justify-content:center;cursor:pointer;animation:{{ micAnim }};">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="{{ micStroke }}" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2" width="4" height="8" rx="2"/><path d="M4 8a4 4 0 0 0 8 0M8 12v2"/></svg>
+            </button>
+            <button onClick="{{ weave }}" title="weave into a map" style="display:flex;align-items:center;gap:7px;background:#7a9a6f;color:#fff;border:1.6px solid #3a4045;border-radius:12px 10px 12px 9px;padding:9px 16px;font-weight:700;font-size:15px;cursor:pointer;box-shadow:2px 2px 0 rgba(58,64,69,.18);">weave<span style="font-size:15px;">✦</span></button>
+          </div>
+          <div style="font-size:12px;color:{{ micNoteColor }};margin-top:8px;height:16px;">{{ micNote }}</div>
+
+          <!-- example prompts -->
+          <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap;">
+            <span style="font-size:13px;color:#a4abae;font-family:'Caveat',cursive;font-size:18px;">try:</span>
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+              <button onClick="{{ c.onClick }}" style="background:#f7f8f8;border:1.5px solid #b7bec1;border-radius:10px 8px 11px 8px;padding:7px 13px;font-size:12.5px;color:#4c5257;cursor:pointer;">{{ c.short }}</button>
+            </sc-for>
+          </div>
+
+          <div style="margin-top:26px;">
+            <a href="Interest Canvas.dc.html" style="font-size:14px;color:#7a9a6f;font-weight:600;text-decoration:none;border-bottom:1.5px dashed #7a9a6f;padding-bottom:1px;">or explore an example canvas →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 1b — PROMPT OVER GHOST CANVAS ===== -->
+    <div id="1b" style="position:relative;flex:0 0 auto;">
+      <div style="position:absolute;top:-14px;left:-14px;z-index:20;font-family:'Caveat',cursive;font-weight:700;font-size:20px;color:#fff;background:#2b3034;width:44px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px 9px 11px 8px;box-shadow:2px 3px 0 rgba(0,0,0,.15);">1b</div>
+      <div style="font-family:'Caveat',cursive;font-size:26px;font-weight:700;color:#2b3034;margin-bottom:2px;">Prompt over a Ghost Canvas</div>
+      <div style="font-size:13px;color:#7b8287;margin-bottom:14px;max-width:1120px;line-height:1.4;">A real (dimmed) sample constellation sits behind the prompt card, so newcomers see where they're headed. Suggestions as a tidy list, like the reference.</div>
+
+      <div style="position:relative;width:1120px;height:700px;background:#edf0f1;border:1.5px solid #3a4045;border-radius:16px;overflow:hidden;box-shadow:6px 8px 0 rgba(58,64,69,.10);background-image:radial-gradient(#c8ced1 1px, transparent 1px);background-size:26px 26px;">
+
+        <!-- ghost sample canvas (dimmed preview) -->
+        <div style="position:absolute;inset:0;opacity:.4;filter:saturate(.7);">
+          <div style="position:absolute;left:70px;top:90px;width:430px;height:250px;background:rgba(122,154,111,.06);border:1.4px dashed rgba(122,154,111,.5);border-radius:30px 24px 32px 26px;filter:url(#rough);"></div>
+          <div style="position:absolute;left:88px;top:74px;font-family:'Caveat',cursive;font-size:17px;color:#7a9a6f;">learning &amp; input</div>
+          <div style="position:absolute;right:70px;bottom:120px;width:360px;height:200px;background:rgba(111,138,168,.06);border:1.4px dashed rgba(111,138,168,.5);border-radius:28px 22px 30px 24px;filter:url(#rough);"></div>
+          <div style="position:absolute;right:300px;bottom:300px;font-family:'Caveat',cursive;font-size:17px;color:#6f8aa8;">craft &amp; ship</div>
+          <svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;" fill="none" stroke="#9aa1a5" stroke-width="1.3" stroke-linecap="round"><path d="M240 200 C360 260 520 340 640 430" filter="url(#edge)"/><path d="M180 320 C300 360 420 400 500 440" filter="url(#edge)"/></svg>
+          <div style="position:absolute;left:100px;top:130px;width:150px;height:80px;background:#fbfbfa;border:1.6px solid #3a4045;border-radius:11px 8px 12px 7px;"></div>
+          <div style="position:absolute;left:300px;top:210px;width:150px;height:80px;background:#fbfbfa;border:1.6px solid #3a4045;border-radius:10px 9px 11px 8px;"></div>
+          <div style="position:absolute;right:120px;bottom:150px;width:150px;height:80px;background:#fbfbfa;border:1.6px solid #3a4045;border-radius:9px 11px 8px 12px;"></div>
+        </div>
+        <div style="position:absolute;inset:0;background:rgba(237,240,241,.55);"></div>
+
+        <!-- wordmark -->
+        <div style="position:absolute;top:22px;left:26px;display:flex;align-items:baseline;gap:10px;z-index:3;">
+          <span style="font-family:'Caveat',cursive;font-weight:700;font-size:26px;color:#2b3034;">Loom</span>
+        </div>
+
+        <!-- prompt card -->
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:600px;z-index:5;background:#f7f8f8;border:1.8px solid #3a4045;border-radius:20px;padding:30px 30px 26px;box-shadow:6px 8px 0 rgba(58,64,69,.16);">
+          <div style="font-family:'Caveat',cursive;font-weight:700;font-size:38px;color:#2b3034;line-height:1.05;text-align:center;opacity:{{ hOpacity }};transition:opacity .4s ease;min-height:44px;">{{ headline }}</div>
+          <div style="font-size:14px;color:#7b8287;margin-top:6px;margin-bottom:20px;text-align:center;">Say it in a sentence — I'll untangle it into a map.</div>
+
+          <div style="display:flex;align-items:center;gap:10px;background:#fbfbfa;border:1.8px solid #3a4045;border-radius:14px 12px 14px 11px;padding:11px 12px;box-shadow:2px 3px 0 rgba(58,64,69,.12);">
+            <input value="{{ inputVal }}" onInput="{{ onInput }}" onKeyDown="{{ onKey }}" placeholder="e.g. reading more, cooking, and keeping up with DSA…" style="flex:1;border:none;outline:none;background:transparent;font-size:15px;color:#2b3034;"/>
+            <button onClick="{{ toggleMic }}" title="speak your thoughts" style="width:34px;height:34px;border-radius:50%;background:{{ micBg }};border:1.5px solid #3a4045;display:flex;align-items:center;justify-content:center;cursor:pointer;animation:{{ micAnim }};">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="{{ micStroke }}" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2" width="4" height="8" rx="2"/><path d="M4 8a4 4 0 0 0 8 0M8 12v2"/></svg>
+            </button>
+            <button onClick="{{ weave }}" title="weave into a map" style="width:38px;height:34px;border-radius:11px 9px 11px 9px;background:#7a9a6f;border:1.6px solid #3a4045;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:2px 2px 0 rgba(58,64,69,.18);">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9M8 4l4 4-4 4"/></svg>
+            </button>
+          </div>
+          <div style="font-size:12px;color:{{ micNoteColor }};margin-top:8px;height:16px;text-align:center;">{{ micNote }}</div>
+
+          <!-- suggestion rows -->
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:2px;">
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+              <button onClick="{{ c.onClick }}" style="display:flex;align-items:center;gap:12px;background:transparent;border:none;border-radius:10px;padding:10px 8px;cursor:pointer;text-align:left;" style-hover="background:#eef1f2;">
+                <span style="width:26px;height:26px;flex:none;border:1.5px solid #b7bec1;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#7a9a6f;font-size:14px;">{{ c.icon }}</span>
+                <span style="font-size:14px;color:#3a4045;line-height:1.3;">{{ c.short }}</span>
+              </button>
+            </sc-for>
+          </div>
+
+          <div style="border-top:1.4px dashed #cfd6d8;margin-top:12px;padding-top:14px;text-align:center;">
+            <a href="Interest Canvas.dc.html" style="font-size:14px;color:#7a9a6f;font-weight:600;text-decoration:none;">◫ &nbsp;explore an example canvas →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.headlines = [
+      'Where should we begin?',
+      'What’s pulling at you lately?',
+      'What are you juggling right now?',
+      'Empty your head. We’ll make sense of it.',
+      'What do you keep meaning to get to?',
+    ];
+    this.examples = [
+      { short:'Learn Japanese, get fit & ship my game', full:'I want to learn Japanese, get fit, and finally ship my game', icon:'✎' },
+      { short:'Read more, cook, keep up with DSA', full:'Reading more, cooking, and keeping up with DSA', icon:'≡' },
+      { short:'Side projects, health & writing online', full:'Side projects, staying healthy, and writing online', icon:'◈' },
+    ];
+    this.state = { hIndex: Math.floor(Math.random()*5), hOpacity:1, inputVal:'', listening:false };
+  }
+  componentDidMount(){
+    this._t = setInterval(()=>{
+      this.setState({ hOpacity:0 });
+      setTimeout(()=> this.setState(s=>({ hIndex:(s.hIndex+1)%this.headlines.length, hOpacity:1 })), 420);
+    }, 4200);
+  }
+  componentWillUnmount(){ if(this._t) clearInterval(this._t); if(this._mic) clearTimeout(this._mic); }
+  onInput = (e)=> this.setState({ inputVal:e.target.value });
+  onKey = (e)=>{ if(e.key==='Enter') this.weave(); };
+  fill = (full)=> this.setState({ inputVal:full });
+  toggleMic = ()=>{
+    const on = !this.state.listening;
+    this.setState({ listening:on });
+    if(this._mic) clearTimeout(this._mic);
+    if(on) this._mic = setTimeout(()=> this.setState({ listening:false }), 4000);
+  };
+  weave = ()=>{
+    if(!this.state.inputVal.trim()) return;
+    this.setState({ listening:false });
+    // In the app this untangles the sentence into nodes and fades into the canvas.
+    // Here we just acknowledge visually.
+    this.setState({ inputVal:this.state.inputVal });
+  };
+  renderVals(){
+    const s = this.state;
+    return {
+      headline: this.headlines[s.hIndex],
+      hOpacity: s.hOpacity,
+      inputVal: s.inputVal,
+      onInput: this.onInput, onKey: this.onKey, weave: this.weave, toggleMic: this.toggleMic,
+      micBg: s.listening ? '#7a9a6f' : '#f7f8f8',
+      micStroke: s.listening ? '#ffffff' : '#3a4045',
+      micAnim: s.listening ? 'micPulse 1.4s ease-in-out infinite' : 'none',
+      micNote: s.listening ? 'listening… speak your tangle of thoughts' : '',
+      micNoteColor: '#7a9a6f',
+      chips: this.examples.map(ex => ({ short: ex.short, icon: ex.icon, onClick: ()=>this.fill(ex.full) })),
+    };
+  }
+}
+</script>
+</body>
+</html>

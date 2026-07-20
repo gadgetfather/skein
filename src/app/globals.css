@@ -1,0 +1,37 @@
+@import 'tailwindcss';
+
+/* Skein design tokens — from the design system (/design): cool paper, ink,
+   one sage accent, 4px-base spacing (Tailwind's default scale). */
+@theme {
+  --color-paper: #edf0f1;
+  --color-paper-2: #fbfbfa;
+  --color-panel: #f7f8f8;
+  --color-ink: #2b3034;
+  --color-ink-line: #3a4045;
+  --color-muted: #8a9196;
+  --color-muted-2: #6c7378;
+  --color-hairline: #c8ced1;
+  --color-accent: #7a9a6f;
+  --color-accent-deep: #5c7a52;
+  --font-sans: 'Shantell Sans', cursive;
+  --font-hand: 'Caveat', cursive;
+  --shadow-sketch-sm: 2px 3px 0 rgba(58, 64, 69, 0.14);
+  --shadow-sketch-lg: 6px 8px 0 rgba(58, 64, 69, 0.1);
+}
+
+html { scroll-behavior: smooth; }
+body { background: #edf0f1; -webkit-font-smoothing: antialiased; font-family: 'Shantell Sans', cursive; color: #2b3034; }
+a { color: #7a9a6f; text-decoration: none; }
+a:hover { color: #5c7a52; }
+input, textarea, button { font-family: 'Shantell Sans', cursive; }
+code, .mono { font-family: 'JetBrains Mono', monospace; }
+
+@keyframes callPulse {
+  0%,100% { box-shadow: 2px 3px 0 rgba(58,64,69,.14), 0 0 0 0 rgba(122,154,111,0); }
+  50% { box-shadow: 2px 3px 0 rgba(58,64,69,.14), 0 0 0 8px rgba(122,154,111,.16); }
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px);} to {opacity:1;transform:translateY(0);} }
+@keyframes popIn { from { opacity:0; transform:translate(-50%,-50%) scale(.94);} to {opacity:1;transform:translate(-50%,-50%) scale(1);} }
+@keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(122,154,111,0);} 50% { box-shadow: 0 0 0 8px rgba(122,154,111,.16);} }
+@keyframes floaty2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes breathe { 0%,100% { transform:scale(1); opacity:.75; } 50% { transform:scale(1.06); opacity:1; } }

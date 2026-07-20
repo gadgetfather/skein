@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,wght@0,300..800;1,300..700&family=Caveat:wght@400..700&display=swap" rel="stylesheet">
+<meta name="design_doc_mode" content="canvas">
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#e4e8ea; -webkit-font-smoothing:antialiased; font-family:'Shantell Sans',cursive; }
+  a { color:#7a9a6f; text-decoration:none; } a:hover { color:#5c7a52; }
+  @keyframes floaty2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+</style>
+</helmet>
+
+<svg width="0" height="0" style="position:absolute;pointer-events:none;">
+  <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3"/></filter>
+  <filter id="edge"><feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.8"/></filter>
+</svg>
+
+<section style="display:flex;flex-direction:column;gap:8px;padding:60px 60px 96px;">
+  <div style="font-family:'Caveat',cursive;font-size:30px;color:#2b3034;font-weight:700;">Landing hero — two directions</div>
+  <div style="font-size:15px;color:#6c7378;max-width:780px;line-height:1.5;">Same paper aesthetic as the app, calm &amp; reassuring, with a waitlist + live-demo CTA and a canvas preview. Tell me an id (1a / 1b). Name shown as <b>Skein</b> — I've got alternatives in chat.</div>
+
+  <div style="display:flex;gap:64px;align-items:flex-start;flex-wrap:nowrap;margin-top:24px;">
+
+    <!-- ================= 1a — CENTERED ================= -->
+    <div id="1a" style="position:relative;flex:0 0 auto;">
+      <div style="position:absolute;top:-14px;left:-14px;z-index:20;font-family:'Caveat',cursive;font-weight:700;font-size:20px;color:#fff;background:#2b3034;width:44px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px 9px 11px 8px;box-shadow:2px 3px 0 rgba(0,0,0,.15);">1a</div>
+      <div style="font-family:'Caveat',cursive;font-size:26px;font-weight:700;color:#2b3034;margin-bottom:2px;">Centered · copy-first</div>
+      <div style="font-size:13px;color:#7b8287;margin-bottom:14px;max-width:1280px;line-height:1.4;">Calm and confident. Headline centred, dual CTA, the canvas preview sits full-width beneath as proof.</div>
+
+      <div style="position:relative;width:1280px;height:840px;background:#edf0f1;border:1.5px solid #3a4045;border-radius:16px;overflow:hidden;box-shadow:6px 8px 0 rgba(58,64,69,.10);background-image:radial-gradient(#c8ced1 1px,transparent 1px);background-size:26px 26px;">
+        <!-- nav -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:22px 40px;">
+          <div style="display:flex;align-items:baseline;gap:10px;"><span style="font-family:'Caveat',cursive;font-weight:700;font-size:28px;color:#2b3034;">Skein</span></div>
+          <div style="display:flex;align-items:center;gap:26px;font-size:14px;color:#4c5257;">
+            <span>features</span><span>how it works</span><span>FAQ</span>
+            <span style="background:#f7f8f8;border:1.6px solid #3a4045;border-radius:11px 9px 12px 9px;padding:8px 15px;font-weight:600;box-shadow:2px 2px 0 rgba(58,64,69,.12);">try the canvas</span>
+          </div>
+        </div>
+
+        <!-- hero copy -->
+        <div style="text-align:center;max-width:720px;margin:52px auto 0;">
+          <div style="display:inline-block;font-family:'Caveat',cursive;font-size:20px;color:#7a9a6f;background:rgba(122,154,111,.12);border:1.4px solid #7a9a6f;border-radius:20px;padding:4px 16px;margin-bottom:22px;">for the multi-passionate</div>
+          <div style="font-family:'Caveat',cursive;font-weight:700;font-size:66px;color:#2b3034;line-height:1.02;">Untangle your parallel interests.</div>
+          <div style="font-size:17px;color:#6c7378;line-height:1.55;margin-top:18px;max-width:560px;margin-left:auto;margin-right:auto;">Brain-dump every project, hobby, and someday-maybe. Skein weaves them into one calm map — then, when you're overwhelmed, quietly tells you the single thing to do next.</div>
+          <!-- dual CTA -->
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:30px;">
+            <div style="display:flex;align-items:center;gap:8px;background:#fbfbfa;border:1.8px solid #3a4045;border-radius:14px 11px 13px 10px;padding:6px 6px 6px 16px;box-shadow:3px 4px 0 rgba(58,64,69,.13);">
+              <span style="font-size:15px;color:#a4abae;width:210px;text-align:left;">you@email.com</span>
+              <span style="background:#7a9a6f;color:#fff;border:1.6px solid #3a4045;border-radius:11px 9px 12px 9px;padding:11px 18px;font-weight:700;font-size:15px;box-shadow:2px 2px 0 rgba(58,64,69,.18);">join the waitlist</span>
+            </div>
+          </div>
+          <div style="margin-top:14px;"><span style="font-size:14px;color:#7a9a6f;font-weight:600;border-bottom:1.5px dashed #7a9a6f;padding-bottom:1px;">or try the live canvas →</span></div>
+        </div>
+
+        <!-- canvas preview window -->
+        <div style="position:absolute;left:50%;bottom:-30px;transform:translateX(-50%);width:1000px;background:#f4f6f7;border:1.8px solid #3a4045;border-radius:16px 16px 0 0;box-shadow:6px 8px 0 rgba(58,64,69,.12);overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:7px;padding:11px 15px;border-bottom:1.5px solid #dfe4e6;">
+            <span style="width:11px;height:11px;border-radius:50%;background:#e0938a;border:1px solid #3a4045;"></span>
+            <span style="width:11px;height:11px;border-radius:50%;background:#e5c07a;border:1px solid #3a4045;"></span>
+            <span style="width:11px;height:11px;border-radius:50%;background:#8aa77f;border:1px solid #3a4045;"></span>
+            <span style="margin-left:12px;font-size:12px;color:#8a9196;">skein · your canvas</span>
+          </div>
+          <div style="position:relative;height:250px;background:#edf0f1;background-image:radial-gradient(#c8ced1 1px,transparent 1px);background-size:22px 22px;">
+            <div style="position:absolute;left:60px;top:40px;width:200px;height:130px;background:rgba(122,154,111,.06);border:1.4px dashed rgba(122,154,111,.5);border-radius:26px 20px 28px 22px;filter:url(#rough);"></div>
+            <div style="position:absolute;left:72px;top:24px;display:flex;align-items:center;gap:7px;background:#f4f6f7;border:1.4px solid rgba(122,154,111,.6);border-radius:9px 8px 10px 8px;padding:3px 10px;"><span style="width:8px;height:8px;border-radius:50%;background:#7a9a6f;"></span><span style="font-family:'Caveat',cursive;font-weight:700;font-size:15px;color:#6c7378;">learning</span></div>
+            <svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;" fill="none" stroke="#9aa1a5" stroke-width="1.3" stroke-linecap="round"><path d="M180 120 C320 170 460 120 560 150" opacity="0.8" filter="url(#edge)"/><path d="M240 150 C360 210 520 200 640 200" opacity="0.7" filter="url(#edge)"/></svg>
+            <div style="position:absolute;left:80px;top:56px;width:150px;background:#fbfbfa;border:1.6px solid #3a4045;border-radius:11px 8px 12px 7px;padding:9px 12px;box-shadow:2px 3px 0 rgba(58,64,69,.12);"><div style="font-weight:600;font-size:14px;color:#2b3034;">Learn Japanese</div><div style="display:flex;gap:3px;margin-top:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#7a9a6f;"></span><span style="width:5px;height:5px;border-radius:50%;background:#7a9a6f;"></span><span style="width:5px;height:5px;border-radius:50%;background:#7a9a6f;"></span></div></div>
+            <div style="position:absolute;left:560px;top:66px;width:150px;background:#fbfbfa;border:1.6px solid #3a4045;border-radius:10px 9px 11px 8px;padding:9px 12px;box-shadow:2px 3px 0 rgba(58,64,69,.12);"><div style="font-weight:600;font-size:14px;color:#2b3034;">Build a game</div><div style="display:flex;gap:3px;margin-top:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#6f8aa8;"></span><span style="width:5px;height:5px;border-radius:50%;background:#6f8aa8;"></span><span style="width:5px;height:5px;border-radius:50%;background:#cbd0d2;"></span></div></div>
+            <div style="position:absolute;left:300px;top:150px;width:150px;background:#fbfbfa;border:1.6px solid #3a4045;border-radius:9px 11px 8px 12px;padding:9px 12px;box-shadow:2px 3px 0 rgba(58,64,69,.12);"><div style="font-weight:600;font-size:14px;color:#2b3034;">Cook more</div><div style="display:flex;gap:3px;margin-top:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#b07d67;"></span><span style="width:5px;height:5px;border-radius:50%;background:#b07d67;"></span><span style="width:5px;height:5px;border-radius:50%;background:#cbd0d2;"></span></div></div>
+            <div style="position:absolute;right:40px;bottom:24px;display:flex;align-items:center;gap:8px;background:#7a9a6f;color:#fff;border:1.6px solid #3a4045;border-radius:12px 9px 12px 9px;padding:9px 15px;font-weight:600;font-size:13px;box-shadow:2px 2px 0 rgba(58,64,69,.18);">🎲 decide for me</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 1b — SPLIT ================= -->
+    <div id="1b" style="position:relative;flex:0 0 auto;">
+      <div style="position:absolute;top:-14px;left:-14px;z-index:20;font-family:'Caveat',cursive;font-weight:700;font-size:20px;color:#fff;background:#2b3034;width:44px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px 9px 11px 8px;box-shadow:2px 3px 0 rgba(0,0,0,.15);">1b</div>
+      <div style="font-family:'Caveat',cursive;font-size:26px;font-weight:700;color:#2b3034;margin-bottom:2px;">Split · product-forward</div>
+      <div style="font-size:13px;color:#7b8287;margin-bottom:14px;max-width:1280px;line-height:1.4;">Copy left, a tilted canvas window right with a floating "decide" moment. Shows the product immediately.</div>
+
+      <div style="position:relative;width:1280px;height:840px;background:#eef1f2;border:1.5px solid #3a4045;border-radius:16px;overflow:hidden;box-shadow:6px 8px 0 rgba(58,64,69,.10);background-image:radial-gradient(#c8ced1 1px,transparent 1px);background-size:26px 26px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:22px 44px;">
+          <span style="font-family:'Caveat',cursive;font-weight:700;font-size:28px;color:#2b3034;">Skein</span>
+          <div style="display:flex;align-items:center;gap:26px;font-size:14px;color:#4c5257;"><span>features</span><span>how it works</span><span>FAQ</span><span style="background:#f7f8f8;border:1.6px solid #3a4045;border-radius:11px 9px 12px 9px;padding:8px 15px;font-weight:600;box-shadow:2px 2px 0 rgba(58,64,69,.12);">try the canvas</span></div>
+        </div>
+
+        <!-- left copy -->
+        <div style="position:absolute;left:64px;top:190px;width:520px;">
+          <div style="display:inline-block;font-family:'Caveat',cursive;font-size:20px;color:#7a9a6f;background:rgba(122,154,111,.12);border:1.4px solid #7a9a6f;border-radius:20px;padding:4px 16px;margin-bottom:22px;">too many interests?</div>
+          <div style="font-family:'Caveat',cursive;font-weight:700;font-size:60px;color:#2b3034;line-height:1.02;">One calm canvas for everything you're into.</div>
+          <div style="font-size:17px;color:#6c7378;line-height:1.55;margin-top:18px;max-width:460px;">Dump it all in, watch it group itself, and when your head's too full, let Skein pick the one next thing — then start a focus session on it.</div>
+          <div style="display:flex;align-items:center;gap:8px;background:#fbfbfa;border:1.8px solid #3a4045;border-radius:14px 11px 13px 10px;padding:6px 6px 6px 16px;box-shadow:3px 4px 0 rgba(58,64,69,.13);margin-top:30px;width:max-content;">
+            <span style="font-size:15px;color:#a4abae;width:190px;text-align:left;">you@email.com</span>
+            <span style="background:#7a9a6f;color:#fff;border:1.6px solid #3a4045;border-radius:11px 9px 12px 9px;padding:11px 18px;font-weight:700;font-size:15px;box-shadow:2px 2px 0 rgba(58,64,69,.18);">get early access</span>
+          </div>
+          <div style="margin-top:14px;"><span style="font-size:14px;color:#7a9a6f;font-weight:600;border-bottom:1.5px dashed #7a9a6f;padding-bottom:1px;">or try the live canvas →</span></div>
+        </div>
+
+        <!-- right canvas window (tilted) -->
+        <div style="position:absolute;right:-30px;top:150px;width:660px;transform:rotate(-2deg);background:#f4f6f7;border:1.8px solid #3a4045;border-radius:16px;box-shadow:8px 10px 0 rgba(58,64,69,.14);overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:7px;padding:11px 15px;border-bottom:1.5px solid #dfe4e6;">
+            <span style="width:11px;height:11px;border-radius:50%;background:#e0938a;border:1px solid #3a4045;"></span><span style="width:11px;height:11px;border-radius:50%;background:#e5c07a;border:1px solid #3a4045;"></span><span style="width:11px;height:11px;border-radius:50%;background:#8aa77f;border:1px solid #3a4045;"></span>
+            <span style="margin-left:12px;font-size:12px;color:#8a9196;">skein · your canvas</span>
+          </div>
+          <div style="position:relative;height:440px;background:#edf0f1;background-image:radial-gradient(#c8ced1 1px,transparent 1px);background-size:22px 22px;">
+            <div style="position:absolute;left:40px;top:36px;width:210px;height:150px;background:rgba(122,154,111,.06);border:1.4px dashed rgba(122,154,111,.5);border-radius:26px 20px 28px 22px;filter:url(#rough);"></div>
+            <div style="position:absolute;left:300px;top:210px;width:210px;height:150px;background:rgba(111,138,168,.06);border:1.4px dashed rgba(111,138,168,.5);border-radius:24px 22px 26px 20px;filter:url(#rough);"></div>
+            <svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;" fill="none" stroke="#9aa1a5" stroke-width="1.3" stroke-linecap="round"><path d="M150 130 C280 190 380 250 430 300" opacity="0.8" filter="url(#edge)"/><path d="M120 160 C220 210 300 230 360 260" opacity="0.7" filter="url(#edge)"/></svg>
+            <div style="position:absolute;left:60px;top:56px;width:150px;background:#fbfbfa;border:1.6px solid #3a4045;border-radius:11px 8px 12px 7px;padding:9px 12px;box-shadow:2px 3px 0 rgba(58,64,69,.12);"><div style="font-weight:600;font-size:14px;color:#2b3034;">Learn Japanese</div><div style="display:flex;gap:3px;margin-top:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#7a9a6f;"></span><span style="width:5px;height:5px;border-radius:50%;background:#7a9a6f;"></span><span style="width:5px;height:5px;border-radius:50%;background:#7a9a6f;"></span></div></div>
+            <div style="position:absolute;left:80px;top:130px;width:150px;background:#fbfbfa;border:1.6px solid #3a4045;border-radius:9px 11px 8px 12px;padding:9px 12px;box-shadow:2px 3px 0 rgba(58,64,69,.12);"><div style="font-weight:600;font-size:14px;color:#2b3034;">Read more</div><div style="display:flex;gap:3px;margin-top:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#7a9a6f;"></span><span style="width:5px;height:5px;border-radius:50%;background:#cbd0d2;"></span><span style="width:5px;height:5px;border-radius:50%;background:#cbd0d2;"></span></div></div>
+            <div style="position:absolute;left:330px;top:236px;width:150px;background:#fbfbfa;border:1.6px solid #3a4045;border-radius:10px 9px 11px 8px;padding:9px 12px;box-shadow:2px 3px 0 rgba(58,64,69,.12);"><div style="font-weight:600;font-size:14px;color:#2b3034;">Ship the game</div><div style="display:flex;gap:3px;margin-top:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#6f8aa8;"></span><span style="width:5px;height:5px;border-radius:50%;background:#6f8aa8;"></span><span style="width:5px;height:5px;border-radius:50%;background:#6f8aa8;"></span></div></div>
+            <!-- floating decide card -->
+            <div style="position:absolute;right:20px;bottom:20px;width:220px;background:#f7f8f8;border:1.8px solid #3a4045;border-radius:16px;padding:16px;box-shadow:4px 5px 0 rgba(58,64,69,.16);animation:floaty2 6s ease-in-out infinite;">
+              <div style="font-size:11px;color:#7b8287;">right now, do this →</div>
+              <div style="font-family:'Caveat',cursive;font-weight:700;font-size:24px;color:#2b3034;line-height:1.05;margin:3px 0;">Learn Japanese</div>
+              <div style="font-size:12px;color:#5c7a52;background:rgba(122,154,111,.14);border:1.3px solid #7a9a6f;border-radius:8px;padding:3px 8px;display:inline-block;">15 min · low energy</div>
+              <div style="background:#7a9a6f;color:#fff;text-align:center;border:1.5px solid #3a4045;border-radius:10px 8px 11px 8px;padding:8px;font-weight:700;font-size:13px;margin-top:12px;box-shadow:2px 2px 0 rgba(58,64,69,.18);">start this</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

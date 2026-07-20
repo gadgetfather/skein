@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,wght@0,300..800;1,300..700&family=Caveat:wght@400..700&display=swap" rel="stylesheet">
+<meta name="design_doc_mode" content="canvas">
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; background:#e4e8ea; -webkit-font-smoothing:antialiased; font-family:'Shantell Sans',cursive; }
+  a { color:#7a9a6f; } a:hover { color:#5c7a52; }
+</style>
+</helmet>
+
+<svg width="0" height="0" style="position:absolute;pointer-events:none;">
+  <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3"/></filter>
+</svg>
+
+<section style="display:flex;flex-direction:column;gap:8px;padding:60px 60px 96px;">
+  <div style="font-family:'Caveat',cursive;font-size:30px;color:#2b3034;font-weight:700;">Expanded interest detail — two directions</div>
+  <div style="font-size:15px;color:#6c7378;max-width:760px;line-height:1.5;">Click a node → the drawer we have; hit <b>expand ⤢</b> (or double-click) → it slides to half the screen with this. Sample interest: <b>Learn Japanese</b>. Tell me an id (1a / 1b).</div>
+
+  <div style="display:flex;gap:64px;align-items:flex-start;flex-wrap:nowrap;margin-top:24px;">
+
+    <!-- ================= 1a — DASHBOARD ================= -->
+    <div id="1a" style="position:relative;flex:0 0 auto;">
+      <div style="position:absolute;top:-14px;left:-14px;z-index:20;font-family:'Caveat',cursive;font-weight:700;font-size:20px;color:#fff;background:#2b3034;width:44px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px 9px 11px 8px;box-shadow:2px 3px 0 rgba(0,0,0,.15);">1a</div>
+      <div style="font-family:'Caveat',cursive;font-size:26px;font-weight:700;color:#2b3034;margin-bottom:2px;">Dashboard</div>
+      <div style="font-size:13px;color:#7b8287;margin-bottom:14px;max-width:1180px;line-height:1.4;">Everything at a glance: goal bar, stat chips, a consistency heatmap, weekly hours, and a session log. Dense but scannable.</div>
+
+      <div style="position:relative;width:1180px;height:800px;background:#edf0f1;border:1.5px solid #3a4045;border-radius:16px;overflow:hidden;box-shadow:6px 8px 0 rgba(58,64,69,.10);">
+        <!-- dimmed canvas behind (left) -->
+        <div style="position:absolute;inset:0;background-image:radial-gradient(#c8ced1 1px,transparent 1px);background-size:26px 26px;"></div>
+        <div style="position:absolute;left:60px;top:120px;width:150px;height:96px;background:#fbfbfa;border:1.6px solid #b6bec1;border-radius:11px 8px 12px 7px;opacity:.55;"></div>
+        <div style="position:absolute;left:120px;top:300px;width:150px;height:96px;background:#fbfbfa;border:1.6px solid #7a9a6f;border-radius:10px 9px 11px 8px;opacity:.7;box-shadow:0 0 0 4px rgba(122,154,111,.2);"></div>
+        <div style="position:absolute;left:260px;top:470px;width:150px;height:96px;background:#fbfbfa;border:1.6px solid #b6bec1;border-radius:9px 11px 8px 12px;opacity:.5;"></div>
+        <div style="position:absolute;inset:0;background:rgba(43,48,52,.14);"></div>
+
+        <!-- HALF-SCREEN PANEL (right) -->
+        <div style="position:absolute;top:0;right:0;bottom:0;width:640px;background:#f4f6f7;border-left:1.8px solid #3a4045;box-shadow:-8px 0 0 rgba(58,64,69,.08);display:flex;flex-direction:column;">
+          <!-- header -->
+          <div style="flex:0 0 auto;padding:22px 26px 16px;border-bottom:1.5px solid #dfe4e6;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:9px;">
+                <span style="width:11px;height:11px;border-radius:50%;background:#7a9a6f;"></span>
+                <span style="font-size:11px;color:#8a9196;text-transform:uppercase;letter-spacing:.07em;">learning &amp; input · interest</span>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <span title="collapse to drawer" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:1.5px solid #3a4045;border-radius:8px;background:#fbfbfa;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#3a4045" stroke-width="1.6" stroke-linecap="round"><path d="M10 3l-4 5 4 5"/></svg></span>
+                <span title="close" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:1.5px solid #3a4045;border-radius:8px;background:#fbfbfa;cursor:pointer;font-size:16px;color:#3a4045;">×</span>
+              </div>
+            </div>
+            <div style="font-family:'Caveat',cursive;font-weight:700;font-size:40px;color:#2b3034;line-height:1.02;margin-top:6px;">Learn Japanese</div>
+            <div style="font-size:13px;color:#7b8287;margin-top:2px;">high-level goal · <b style="color:#2b3034;">reach conversational (N2) by December</b></div>
+            <!-- goal bar -->
+            <div style="margin-top:14px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:#7b8287;margin-bottom:5px;"><span>N5 &middot; start</span><span style="color:#5c7a52;font-weight:600;">now: N4 &middot; 38%</span><span>N2 &middot; goal</span></div>
+              <div style="height:12px;background:#e3e8e9;border:1.4px solid #3a4045;border-radius:8px;overflow:hidden;position:relative;">
+                <div style="position:absolute;left:0;top:0;bottom:0;width:38%;background:#7a9a6f;"></div>
+                <div style="position:absolute;left:38%;top:-4px;width:2px;height:18px;background:#2b3034;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- scroll body -->
+          <div style="flex:1;overflow-y:auto;padding:18px 26px 24px;">
+            <!-- stat chips -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+              <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+                <div style="background:#fbfbfa;border:1.6px solid #3a4045;border-radius:10px 8px 11px 8px;padding:11px 12px;box-shadow:2px 3px 0 rgba(58,64,69,.1);">
+                  <div style="font-family:'Caveat',cursive;font-weight:700;font-size:26px;color:#2b3034;line-height:1;">{{ s.val }}</div>
+                  <div style="font-size:11px;color:#8a9196;margin-top:3px;">{{ s.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <!-- consistency heatmap -->
+            <div style="margin-top:22px;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;"><span style="font-size:12px;font-weight:600;color:#8a9196;text-transform:uppercase;letter-spacing:.06em;">Consistency · last 12 weeks</span><span style="font-size:12px;color:#7a9a6f;">◍ momentum: speeding up ↑</span></div>
+              <div style="display:flex;gap:3px;">
+                <sc-for list="{{ heatCols }}" as="col" hint-placeholder-count="12">
+                  <div style="display:flex;flex-direction:column;gap:3px;">
+                    <sc-for list="{{ col.cells }}" as="d" hint-placeholder-count="7">
+                      <div style="width:14px;height:14px;border-radius:3px;background:{{ d.bg }};"></div>
+                    </sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- weekly bars -->
+            <div style="margin-top:22px;">
+              <div style="font-size:12px;font-weight:600;color:#8a9196;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Hours / week</div>
+              <div style="display:flex;align-items:flex-end;gap:12px;height:110px;padding-bottom:20px;border-bottom:1.5px solid #d3d9db;">
+                <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="8">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+                    <div style="font-size:10px;color:#8a9196;margin-bottom:3px;">{{ w.val }}</div>
+                    <div style="width:100%;height:{{ w.h }}px;background:{{ w.bg }};border:1.4px solid #3a4045;border-radius:5px 5px 0 0;"></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- session log -->
+            <div style="margin-top:22px;">
+              <div style="font-size:12px;font-weight:600;color:#8a9196;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Recent sessions</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <sc-for list="{{ sessions }}" as="v" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:12px;background:#fbfbfa;border:1.5px solid #cfd6d8;border-radius:10px;padding:10px 12px;">
+                    <div style="width:52px;font-size:11px;color:#8a9196;flex:none;">{{ v.date }}</div>
+                    <div style="flex:1;"><div style="font-size:13px;color:#2b3034;">{{ v.note }}</div></div>
+                    <div style="font-size:12px;color:#5c7a52;font-weight:600;flex:none;">{{ v.dur }}</div>
+                    <div style="font-size:11px;color:#8a9196;width:64px;text-align:right;flex:none;">{{ v.mood }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <!-- footer actions -->
+          <div style="flex:0 0 auto;padding:14px 26px;border-top:1.5px solid #dfe4e6;display:flex;align-items:center;gap:10px;background:#eef1f2;">
+            <button style="background:#7a9a6f;color:#fff;border:1.6px solid #3a4045;border-radius:11px 9px 12px 9px;padding:10px 14px;font-weight:700;font-size:14px;cursor:pointer;box-shadow:2px 3px 0 rgba(58,64,69,.18);">did this today ✓</button>
+            <button style="background:#fbfbfa;color:#2b3034;border:1.6px solid #3a4045;border-radius:9px 11px 8px 12px;padding:10px 14px;font-weight:600;font-size:14px;cursor:pointer;">+ log session</button>
+            <div style="flex:1;"></div>
+            <button style="display:flex;align-items:center;gap:8px;background:#2b3034;color:#fff;border:1.6px solid #3a4045;border-radius:11px 9px 12px 9px;padding:10px 14px;font-weight:600;font-size:14px;cursor:pointer;"><span style="font-family:monospace;font-size:15px;">25:00</span> start pomodoro</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 1b — CALM / RING-FIRST ================= -->
+    <div id="1b" style="position:relative;flex:0 0 auto;">
+      <div style="position:absolute;top:-14px;left:-14px;z-index:20;font-family:'Caveat',cursive;font-weight:700;font-size:20px;color:#fff;background:#2b3034;width:44px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px 9px 11px 8px;box-shadow:2px 3px 0 rgba(0,0,0,.15);">1b</div>
+      <div style="font-family:'Caveat',cursive;font-size:26px;font-weight:700;color:#2b3034;margin-bottom:2px;">Calm · Ring-first</div>
+      <div style="font-size:13px;color:#7b8287;margin-bottom:14px;max-width:1180px;line-height:1.4;">Quieter and more editorial. A big progress ring anchors the goal, momentum reads as a sparkline, and the journal of what-you-did takes centre stage.</div>
+
+      <div style="position:relative;width:1180px;height:800px;background:#edf0f1;border:1.5px solid #3a4045;border-radius:16px;overflow:hidden;box-shadow:6px 8px 0 rgba(58,64,69,.10);">
+        <div style="position:absolute;inset:0;background-image:radial-gradient(#c8ced1 1px,transparent 1px);background-size:26px 26px;"></div>
+        <div style="position:absolute;left:80px;top:160px;width:150px;height:96px;background:#fbfbfa;border:1.6px solid #7a9a6f;border-radius:11px 8px 12px 7px;opacity:.7;box-shadow:0 0 0 4px rgba(122,154,111,.2);"></div>
+        <div style="position:absolute;left:150px;top:360px;width:150px;height:96px;background:#fbfbfa;border:1.6px solid #b6bec1;border-radius:10px 9px 11px 8px;opacity:.5;"></div>
+        <div style="position:absolute;inset:0;background:rgba(43,48,52,.14);"></div>
+
+        <div style="position:absolute;top:0;right:0;bottom:0;width:640px;background:#f4f6f7;border-left:1.8px solid #3a4045;box-shadow:-8px 0 0 rgba(58,64,69,.08);display:flex;flex-direction:column;">
+          <!-- header -->
+          <div style="flex:0 0 auto;padding:22px 30px 20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:9px;"><span style="width:11px;height:11px;border-radius:50%;background:#7a9a6f;"></span><span style="font-size:11px;color:#8a9196;text-transform:uppercase;letter-spacing:.07em;">learning &amp; input</span></div>
+              <div style="display:flex;gap:8px;">
+                <span title="collapse" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:1.5px solid #3a4045;border-radius:8px;background:#fbfbfa;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#3a4045" stroke-width="1.6" stroke-linecap="round"><path d="M10 3l-4 5 4 5"/></svg></span>
+                <span title="close" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:1.5px solid #3a4045;border-radius:8px;background:#fbfbfa;cursor:pointer;font-size:16px;color:#3a4045;">×</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:1;overflow-y:auto;padding:0 30px 24px;">
+            <!-- ring + title -->
+            <div style="display:flex;align-items:center;gap:22px;">
+              <div style="position:relative;width:132px;height:132px;flex:none;">
+                <svg width="132" height="132" viewBox="0 0 132 132">
+                  <circle cx="66" cy="66" r="54" fill="none" stroke="#e3e8e9" stroke-width="13"/>
+                  <circle cx="66" cy="66" r="54" fill="none" stroke="#7a9a6f" stroke-width="13" stroke-linecap="round" stroke-dasharray="{{ ringDash }}" transform="rotate(-90 66 66)"/>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                  <div style="font-family:'Caveat',cursive;font-weight:700;font-size:30px;color:#2b3034;line-height:1;">38%</div>
+                  <div style="font-size:10px;color:#8a9196;">N4 → N2</div>
+                </div>
+              </div>
+              <div>
+                <div style="font-family:'Caveat',cursive;font-weight:700;font-size:38px;color:#2b3034;line-height:1.02;">Learn Japanese</div>
+                <div style="font-size:13px;color:#7b8287;margin-top:3px;max-width:300px;line-height:1.4;">reach conversational (N2) by December</div>
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                  <span style="font-size:12px;color:#5c7a52;background:rgba(122,154,111,.14);border:1.4px solid #7a9a6f;border-radius:9px;padding:4px 10px;">🔥 12-day streak</span>
+                  <span style="font-size:12px;color:#4c5257;background:#fbfbfa;border:1.4px solid #cfd6d8;border-radius:9px;padding:4px 10px;">3 / 4 this week</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- momentum sparkline -->
+            <div style="margin-top:24px;background:#fbfbfa;border:1.6px solid #3a4045;border-radius:12px;padding:16px 18px;box-shadow:2px 3px 0 rgba(58,64,69,.1);">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-size:12px;font-weight:600;color:#8a9196;text-transform:uppercase;letter-spacing:.06em;">Momentum</span><span style="font-size:13px;color:#5c7a52;font-weight:600;">speeding up ↑</span></div>
+              <svg width="100%" height="70" viewBox="0 0 560 70" preserveAspectRatio="none" style="margin-top:8px;overflow:visible;">
+                <polyline points="{{ sparkPts }}" fill="none" stroke="#7a9a6f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="{{ sparkFill }}" fill="rgba(122,154,111,.12)" stroke="none"/>
+              </svg>
+              <div style="font-size:11px;color:#8a9196;margin-top:2px;">avg session length is trending up over 8 weeks</div>
+            </div>
+
+            <!-- weekly mini bars + longest streak -->
+            <div style="display:grid;grid-template-columns:1fr 150px;gap:14px;margin-top:16px;">
+              <div style="background:#fbfbfa;border:1.6px solid #3a4045;border-radius:12px;padding:14px 16px;box-shadow:2px 3px 0 rgba(58,64,69,.1);">
+                <div style="font-size:12px;font-weight:600;color:#8a9196;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Hours / week</div>
+                <div style="display:flex;align-items:flex-end;gap:8px;height:64px;">
+                  <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="8">
+                    <div style="flex:1;height:{{ w.h2 }}px;background:{{ w.bg }};border:1.4px solid #3a4045;border-radius:4px 4px 0 0;"></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="background:#fbfbfa;border:1.6px solid #3a4045;border-radius:12px;padding:14px 16px;box-shadow:2px 3px 0 rgba(58,64,69,.1);display:flex;flex-direction:column;justify-content:center;">
+                <div style="font-family:'Caveat',cursive;font-weight:700;font-size:34px;color:#2b3034;line-height:1;">21</div>
+                <div style="font-size:11px;color:#8a9196;margin-top:3px;">longest streak (days)</div>
+              </div>
+            </div>
+
+            <!-- journal -->
+            <div style="margin-top:20px;">
+              <div style="font-size:12px;font-weight:600;color:#8a9196;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">What you did</div>
+              <div style="display:flex;flex-direction:column;">
+                <sc-for list="{{ sessions }}" as="v" hint-placeholder-count="4">
+                  <div style="display:flex;gap:14px;padding:2px 0 14px;position:relative;">
+                    <div style="flex:none;display:flex;flex-direction:column;align-items:center;">
+                      <span style="width:11px;height:11px;border-radius:50%;background:{{ v.dot }};border:1.5px solid #3a4045;"></span>
+                      <span style="flex:1;width:1.5px;background:#d3d9db;margin-top:2px;"></span>
+                    </div>
+                    <div style="flex:1;">
+                      <div style="display:flex;justify-content:space-between;"><span style="font-size:13px;color:#2b3034;">{{ v.note }}</span><span style="font-size:12px;color:#5c7a52;font-weight:600;">{{ v.dur }}</span></div>
+                      <div style="font-size:11px;color:#8a9196;margin-top:2px;">{{ v.date }} · felt {{ v.mood }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:0 0 auto;padding:14px 30px;border-top:1.5px solid #dfe4e6;display:flex;align-items:center;gap:10px;background:#eef1f2;">
+            <button style="background:#7a9a6f;color:#fff;border:1.6px solid #3a4045;border-radius:11px 9px 12px 9px;padding:10px 14px;font-weight:700;font-size:14px;cursor:pointer;box-shadow:2px 3px 0 rgba(58,64,69,.18);">did this today ✓</button>
+            <button style="background:#fbfbfa;color:#2b3034;border:1.6px solid #3a4045;border-radius:9px 11px 8px 12px;padding:10px 14px;font-weight:600;font-size:14px;cursor:pointer;">+ log session</button>
+            <div style="flex:1;"></div>
+            <button style="display:flex;align-items:center;gap:8px;background:#2b3034;color:#fff;border:1.6px solid #3a4045;border-radius:11px 9px 12px 9px;padding:10px 14px;font-weight:600;font-size:14px;cursor:pointer;"><span style="font-family:monospace;font-size:15px;">25:00</span> pomodoro</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    const lv = [0,1,0,2,3,1,0, 1,2,3,4,2,1,0, 0,1,2,4,3,2,1, 2,3,4,3,2,0,1, 1,0,2,3,4,2,3, 0,1,2,1,0,2,3, 2,3,4,4,3,2,1, 0,1,0,2,3,4,2, 1,2,3,2,1,0,1, 2,3,4,3,4,2,1, 0,1,2,3,2,1,0, 1,2,3,4,4,3,2];
+    this.levels = lv;
+    this.weekVals = [2.5,3,1.5,4,3.5,2,4.5,5];
+    this.sessions = [
+      { date:'Today',      dur:'25 min', note:'Anki reviews + N4 grammar (たら form)', mood:'↑ focused', dot:'#7a9a6f' },
+      { date:'Yesterday',  dur:'40 min', note:'Read graded reader, chapter 3',           mood:'→ ok',      dot:'#b0975a' },
+      { date:'2 days ago', dur:'20 min', note:'Listening — a slow-Japanese podcast',      mood:'↓ tired',   dot:'#a56f8f' },
+      { date:'4 days ago', dur:'30 min', note:'Anki + 10 min shadowing',                mood:'↑ focused', dot:'#7a9a6f' },
+    ];
+  }
+  renderVals(){
+    const heatColor = v => ['#e7ebec','rgba(122,154,111,.32)','rgba(122,154,111,.55)','rgba(122,154,111,.80)','#7a9a6f'][v];
+    const heatCols = [];
+    for(let c=0;c<12;c++){ const cells=[]; for(let r=0;r<7;r++){ cells.push({ bg: heatColor(this.levels[c*7+r]||0) }); } heatCols.push({ cells }); }
+    const maxW = Math.max(...this.weekVals);
+    const weeks = this.weekVals.map((v,i)=>({ val:v, h: Math.round(v/maxW*82)+6, h2: Math.round(v/maxW*46)+6, bg: i===this.weekVals.length-1 ? '#7a9a6f' : 'rgba(122,154,111,.5)' }));
+    const stats = [
+      { val:'12', label:'day streak 🔥' },
+      { val:'21', label:'longest streak' },
+      { val:'3/4', label:'this week' },
+      { val:'46h', label:'total logged' },
+    ];
+    // ring: r=54 => circ ~339.3; 38%
+    const circ = 2*Math.PI*54;
+    const ringDash = (circ*0.38).toFixed(1)+' '+circ.toFixed(1);
+    // sparkline from weekVals across 560 wide, 60 tall (inverted y)
+    const n = this.weekVals.length;
+    const pts = this.weekVals.map((v,i)=>{ const x=(i/(n-1))*560; const y=64 - (v/maxW)*56; return x.toFixed(1)+','+y.toFixed(1); });
+    const sparkPts = pts.join(' ');
+    const sparkFill = '0,70 '+pts.join(' ')+' 560,70';
+    return { heatCols, weeks, stats, sessions:this.sessions, ringDash, sparkPts, sparkFill };
+  }
+}
+</script>
+</body>
+</html>
