@@ -1,4 +1,5 @@
 import React from 'react';
+import CalmLoader from './CalmLoader';
 
 export default function DecideFlow({ v }) {
   return (
@@ -53,15 +54,24 @@ export default function DecideFlow({ v }) {
         <>
           <div onClick={v.closeResult} className="fixed inset-0 z-40 bg-[rgba(43,48,52,.28)] backdrop-blur-[2px]"></div>
           <div className="fixed top-1/2 left-1/2 z-[41] max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[420px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[18px] border-[1.8px] border-ink-line bg-panel p-5 shadow-[6px_8px_0_rgba(58,64,69,.18)] animate-[popIn_.2s_ease] sm:p-[26px]">
-            <div className="text-[13px] text-[#7b8287]">right now, do this →</div>
-            <div className="mt-1.5 mb-1 font-hand text-[38px] leading-[1.05] font-bold text-ink">{v.chosenLabel}</div>
-            <div className="mb-2 inline-block px-2.5 py-[3px] text-xs text-accent-deep bg-[rgba(122,154,111,.14)] rounded-[9px] border-[1.4px] border-accent">{v.chosenReason}</div>
-            <div className="mb-4 text-[12.5px] leading-[1.45] text-[#5c6166]">{v.chosenWhy}</div>
-            <div className="p-3.5 bg-paper-2 rounded-[11px_8px_12px_7px] border-[1.6px] border-ink-line shadow-[2px_3px_0_rgba(58,64,69,.1)]">
-              <div className="mb-[5px] flex items-center justify-between gap-2 text-[11px] uppercase tracking-[.06em] text-[#90999d]"><span>your reachable move</span>{v.chosenStepSource&&<span className="normal-case tracking-normal text-accent-deep">{v.chosenStepSource}</span>}</div>
-              <div className="text-base leading-[1.35] text-ink">{v.chosenStep}</div>
-              {!v.chosenStepBusy&&(v.chosenDoneWhen||v.chosenDuration)&&<div className="mt-2.5 flex flex-wrap items-center gap-2 border-t-[1.2px] border-dashed border-[#d3d9db] pt-2 text-[11px] text-muted-2">{v.chosenDuration&&<span className="rounded-md bg-[rgba(122,154,111,.12)] px-1.5 py-0.5 font-semibold text-accent-deep">~{v.chosenDuration} min</span>}{v.chosenDoneWhen&&<span><b className="text-ink">done when:</b> {v.chosenDoneWhen}</span>}</div>}
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="rounded-[8px] border-[1.3px] border-[#c9d0d2] bg-paper-2 px-2 py-1 text-[9px] font-bold uppercase tracking-[.09em] text-muted">picked thread</span>
+              <span className="font-hand text-[21px] font-bold leading-none text-ink">{v.chosenLabel}</span>
+              <span className="rounded-[8px] border-[1.3px] border-accent bg-[rgba(122,154,111,.12)] px-2 py-1 text-[10px] text-accent-deep">{v.chosenReason}</span>
             </div>
+            {v.chosenStepBusy ? (
+              <CalmLoader label="shaping one reachable move…" detail="using where you are now, not the whole destination"/>
+            ) : (
+              <>
+                <div className="text-[12px] font-semibold uppercase tracking-[.08em] text-muted">your next move →</div>
+                <div className="mt-1.5 font-hand text-[34px] leading-[1.06] font-bold text-ink sm:text-[38px]">{v.chosenStep}</div>
+                <div className="mt-3 text-[12.5px] leading-[1.45] text-[#5c6166]">{v.chosenWhy}</div>
+                <div className="mt-4 rounded-[11px_8px_12px_7px] border-[1.5px] border-ink-line bg-paper-2 p-3.5 shadow-[2px_3px_0_rgba(58,64,69,.1)]">
+                  <div className="mb-2 flex items-center justify-between gap-2 text-[10px] uppercase tracking-[.07em] text-muted"><span>finish line for this move</span>{v.chosenStepSource&&<span className="normal-case font-semibold tracking-normal text-accent-deep">{v.chosenStepSource}</span>}</div>
+                  <div className="flex flex-wrap items-start gap-2 text-[11px] leading-[1.45] text-muted-2">{v.chosenDuration&&<span className="rounded-md bg-[rgba(122,154,111,.12)] px-1.5 py-0.5 font-semibold text-accent-deep">~{v.chosenDuration} min</span>}{v.chosenDoneWhen&&<span><b className="text-ink">done when:</b> {v.chosenDoneWhen}</span>}</div>
+                </div>
+              </>
+            )}
             {v.hasCombo && (
               <div className="mt-3 bg-transparent px-3.5 py-[11px] rounded-[11px_8px_12px_7px] border-[1.4px] border-dashed border-[#b6bec1]">
                 <div className="text-[11px] font-semibold uppercase tracking-[.06em] text-muted">✦ or, two-in-one with {v.chosenComboPartner}</div>

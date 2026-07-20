@@ -66,6 +66,12 @@ export default function ExpandedDetail({ v }) {
 
           <div className="mt-5">
             <div className="mb-2.5 text-xs font-semibold uppercase tracking-[.06em] text-muted">Next steps</div>
+            {exp.routeFrontier && (
+              <div className="mb-2.5 rounded-[11px_8px_12px_9px] border-[1.5px] border-[rgba(122,154,111,.68)] bg-[rgba(122,154,111,.08)] p-3.5">
+                <div className="mb-1.5 flex items-center justify-between gap-2"><span className="text-[10px] font-bold uppercase tracking-[.08em] text-accent-deep">ready on your route</span><button onClick={exp.routeFrontier.onOpen} className="cursor-pointer border-none bg-transparent p-0 text-[11px] font-semibold text-[#806b35]">view map ↗</button></div>
+                <div className="flex items-start gap-2.5"><button onClick={exp.routeFrontier.onToggle} aria-label={`complete route move ${exp.routeFrontier.text}`} className="mt-0.5 flex h-[20px] w-[20px] flex-none cursor-pointer items-center justify-center rounded-[6px] border-[1.5px] border-accent bg-paper-2 text-[11px] font-bold text-accent-deep">✓</button><div><div className="text-sm font-semibold leading-[1.35] text-ink">{exp.routeFrontier.text}</div><div className="mt-1 text-[11px] leading-[1.4] text-muted-2">{exp.routeFrontier.duration&&<span className="mr-1.5 font-semibold text-accent-deep">~{exp.routeFrontier.duration} min</span>}done when: {exp.routeFrontier.doneWhen}</div></div></div>
+              </div>
+            )}
             {exp.steps.map(st => (
               <div key={st.id} className="flex items-center gap-[9px] py-1.5">
                 <button onClick={st.onToggle} className="flex h-[18px] w-[18px] flex-none cursor-pointer items-center justify-center rounded-[5px] border-[1.6px] border-ink-line text-xs leading-none text-white" style={{ background: st.box }}>{st.check}</button>
@@ -74,7 +80,7 @@ export default function ExpandedDetail({ v }) {
               </div>
             ))}
             {exp.noSteps && (
-              <div className="pt-0.5 pb-1 text-[13px] text-[#a4abae]">No steps yet — add one, or <button onClick={exp.onSuggest} className="cursor-pointer border-none bg-transparent p-0 font-semibold text-accent">✦ suggest with AI</button></div>
+              <div className="pt-0.5 pb-1 text-[13px] text-[#a4abae]">{exp.routeFrontier?'No separate saved steps.':'No steps yet —'} {!exp.routeFrontier&&<>add one, or <button onClick={exp.onSuggest} className="cursor-pointer border-none bg-transparent p-0 font-semibold text-accent">✦ suggest with AI</button></>}</div>
             )}
             {v.aiBusy && (
               <div className="py-0.5 text-xs text-accent">✦ thinking…</div>

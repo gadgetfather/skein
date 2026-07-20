@@ -360,6 +360,12 @@ export default class App extends React.Component {
     const node=(map.nodes||[]).filter(x=>this.routeReachable(map,x)).sort((a,b)=>(order[a.type]??9)-(order[b.type]??9)||(a.stage||0)-(b.stage||0)||(a.order||0)-(b.order||0))[0];
     return node?{ text:node.label, doneWhen:node.doneWhen||'This route node is complete', duration:node.durationMinutes||null, source:'route frontier', routeNodeId:node.id }:null;
   }
+  toggleRouteNodeForInterest=(interestId,nodeId)=>{
+    const n=this.state.nodes.find(x=>x.id===interestId), node=n&&n.routeMap&&n.routeMap.nodes.find(x=>x.id===nodeId);
+    if(!n||!node||(!node.done&&!this.routeReachable(n.routeMap,node)))return;
+    this.pushHistory();
+    this.setState(s=>({nodes:s.nodes.map(x=>x.id===interestId?{...x,routeMap:{...x.routeMap,version:(x.routeMap.version||1)+1,nodes:x.routeMap.nodes.map(r=>r.id===nodeId?{...r,done:!r.done}:r)}}:x)}));
+  };
   openRouteMap=(id)=>{
     const n=this.state.nodes.find(x=>x.id===id); if(!n)return;
     let routeMap=n.routeMap;
@@ -390,10 +396,7 @@ export default class App extends React.Component {
   };
   toggleRouteNode=(nodeId)=>{
     const interestId=this.state.routeMapOpenId; if(!interestId)return;
-    const n=this.state.nodes.find(x=>x.id===interestId), node=n&&n.routeMap&&n.routeMap.nodes.find(x=>x.id===nodeId);
-    if(!n||!node||(!node.done&&!this.routeReachable(n.routeMap,node)))return;
-    this.pushHistory();
-    this.setState(s=>({nodes:s.nodes.map(x=>x.id===interestId?{...x,routeMap:{...x.routeMap,version:(x.routeMap.version||1)+1,nodes:x.routeMap.nodes.map(r=>r.id===nodeId?{...r,done:!r.done}:r)}}:x)}));
+    this.toggleRouteNodeForInterest(interestId,nodeId);
   };
   beginRouteNodeMove=()=>this.pushHistory();
   moveRouteNode=(nodeId,x,y)=>{
@@ -412,12 +415,21 @@ export default class App extends React.Component {
     const id=this.state.routeMapOpenId, n=this.state.nodes.find(x=>x.id===id); if(!n||this.state.routeDraftBusy)return;
     this.setState({routeDraftBusy:true,routeDraftError:''});
     try{
-      const res=await fetch('/api/route-map',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label:n.label,posture:n.posture,directionState:n.directionState,direction:n.direction,currentPosition:n.currentPosition,notes:n.note||''})});
+      const recentActivity=(n.sessions||[]).slice(-6).map(x=>x.note).filter(Boolean);
+      const savedMoves=(n.steps||[]).filter(x=>!x.done).map(x=>x.text).slice(0,6);
+      const existingRoute=n.routeMap?{summary:n.routeMap.summary||'',nodes:(n.routeMap.nodes||[]).filter(x=>!['origin','destination'].includes(x.type)).map(x=>({type:x.type,label:x.label,done:!!x.done})).slice(0,10)}:null;
+      const res=await fetch('/api/route-map',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label:n.label,posture:n.posture,directionState:n.directionState,direction:n.direction,currentPosition:n.currentPosition,notes:n.note||'',resumeCue:n.resumeCue||'',recentActivity,savedMoves,existingRoute})});
       if(!res.ok)throw new Error('route_failed');
       const data=await res.json();
       const shell=this.makeRouteShell(n), stamp=Date.now(), keyToId={start:shell.nodes[0].id,goal:shell.nodes[1].id};
       const destinationLabel=(n.direction||'').trim().toLowerCase();
-      const mids=(data.nodes||[]).slice(0,10).map((x,i)=>{ const key=String(x.key||('step_'+i)).replace(/[^a-z0-9_]/gi,'_').toLowerCase(); const rid='rn'+stamp+i; keyToId[key]=rid; return {id:rid,key,type:x.type||'milestone',label:String(x.label||'Untitled step').slice(0,90),description:String(x.description||'').slice(0,180),stage:Math.min(4,Math.max(1,Math.round(x.stage)||1)),order:Math.max(0,Math.round(x.order)||0),doneWhen:String(x.doneWhen||'').slice(0,140),durationMinutes:x.durationMinutes||null,done:false,source:'ai_suggested'}; }).filter(x=>!destinationLabel||x.label.trim().toLowerCase()!==destinationLabel);
+      const seenLabels=[];
+      const normalizeRouteLabel=value=>String(value||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\b(a|an|the|to|and|or|of|for|with)\b/g,' ').replace(/\s+/g,' ').trim();
+      const mids=(data.nodes||[]).slice(0,10).map((x,i)=>{ const key=String(x.key||('step_'+i)).replace(/[^a-z0-9_]/gi,'_').toLowerCase(); const rid='rn'+stamp+i; keyToId[key]=rid; return {id:rid,key,type:x.type||'milestone',label:String(x.label||'Untitled step').slice(0,90),description:String(x.description||'').slice(0,180),stage:Math.min(4,Math.max(1,Math.round(x.stage)||1)),order:Math.max(0,Math.round(x.order)||0),doneWhen:String(x.doneWhen||'').slice(0,140),durationMinutes:x.durationMinutes||null,done:false,source:'ai_suggested'}; }).filter(x=>{
+        const normalized=normalizeRouteLabel(x.label);
+        if(!normalized||normalizeRouteLabel(destinationLabel)===normalized||seenLabels.some(label=>label===normalized||(label.length>18&&normalized.length>18&&(label.includes(normalized)||normalized.includes(label)))))return false;
+        seenLabels.push(normalized);return true;
+      });
       const validRouteIds=new Set([shell.nodes[0].id,shell.nodes[1].id,...mids.map(x=>x.id)]);
       const edges=(data.edges||[]).map(e=>({from:keyToId[String(e.from||'').toLowerCase()],to:keyToId[String(e.to||'').toLowerCase()],relationship:e.relationship||'unlocks'})).filter(e=>e.from&&e.to&&e.from!==e.to&&validRouteIds.has(e.from)&&validRouteIds.has(e.to));
       if(mids.length){
@@ -430,21 +442,46 @@ export default class App extends React.Component {
       this.setState(s=>({routeDraftBusy:false,nodes:s.nodes.map(x=>x.id===id?{...x,routeMap}:x)}));
     }catch(e){ this.setState({routeDraftBusy:false,routeDraftError:'Could not draft the route. Keep shaping it by hand, or try again.'}); }
   };
+  nextMoveRequest(n){
+    const now=Date.now(),day=86400000,map=n&&n.routeMap;
+    const recentActivity=(n.sessions||[]).slice(-6).map(session=>({
+      note:String(session.note||'').slice(0,160),
+      durationMinutes:Math.max(0,Math.round(session.dur||0)),
+      mood:['up','ok','down'].includes(session.mood)?session.mood:null,
+      daysAgo:session.ts?Math.max(0,Math.floor((now-session.ts)/day)):null,
+    }));
+    const savedMoves=(n.steps||[]).slice(-8).map(step=>({text:String(step.text||'').slice(0,140),done:!!step.done}));
+    let routeContext=null;
+    if(map){
+      const middle=(map.nodes||[]).filter(node=>!['origin','destination'].includes(node.type));
+      routeContext={
+        summary:String(map.summary||'').slice(0,180),
+        assumptions:(map.assumptions||[]).slice(0,4).map(value=>String(value||'').slice(0,140)),
+        completed:middle.filter(node=>node.done).slice(-6).map(node=>({type:node.type,label:node.label})),
+        reachable:middle.filter(node=>this.routeReachable(map,node)).slice(0,4).map(node=>({type:node.type,label:node.label,doneWhen:node.doneWhen||'',durationMinutes:node.durationMinutes||null})),
+      };
+    }
+    return {
+      label:n.label,posture:n.posture,directionState:n.directionState,direction:n.direction||'',currentPosition:n.currentPosition||'',resumeCue:n.resumeCue||'',
+      group:{key:n.cluster||'other',label:this.groupLabel(n.cluster||'other')},
+      interestEnergy:Math.min(3,Math.max(1,n.energy||2)),privateContext:n.note||'',recentActivity,savedMoves,routeContext,
+    };
+  }
   suggestStep=async(id)=>{ const n=this.state.nodes.find(x=>x.id===id); if(!n||this.state.aiBusy)return;
     this.setState({aiBusy:true});
-    let t='';
-    try{ const recent=(n.sessions||[]).slice(-4).map(x=>x.note).filter(Boolean).join('; ');
-      const res=await fetch('/api/suggest',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ label:n.label, posture:n.posture, directionState:n.directionState, direction:n.direction||'', currentPosition:n.currentPosition||'', resumeCue:n.resumeCue||'', recent }) });
-      if(res.ok){ const j=await res.json(); t=(j.action||j.step||'').trim().slice(0,120); }
+    let suggestion=null;
+    try{
+      const res=await fetch('/api/suggest',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(this.nextMoveRequest(n)) });
+      if(res.ok){ const j=await res.json(); const text=(j.action||j.step||'').trim().slice(0,140); if(text)suggestion={id:'ai'+Date.now(),text,done:false,source:'ai_suggested',durationMinutes:j.durationMinutes||null,doneWhen:String(j.doneWhen||'').slice(0,160),whyThis:String(j.whyThis||'').slice(0,180),actionType:j.actionType||null}; }
     }catch(e){}
-    if(!t) t=this.offlineStep(n).text;
+    if(!suggestion){const fallback=this.offlineStep(n);suggestion={id:'ai'+Date.now(),text:fallback.text,done:false,source:fallback.source,durationMinutes:fallback.duration||null,doneWhen:fallback.doneWhen||'',whyThis:'',actionType:n.posture||'explore'};}
     this.pushHistory();
-    this.setState(s=>({ aiBusy:false, nodes:s.nodes.map(x=>x.id===id?{...x,steps:[...(x.steps||[]),{id:'ai'+Date.now(),text:t,done:false}]}:x) }));
+    this.setState(s=>({ aiBusy:false, nodes:s.nodes.map(x=>x.id===id?{...x,steps:[...(x.steps||[]),suggestion]}:x) }));
   };
   mapSteps(n){ return (n.steps||[]).map(st=>({ id:st.id, text:st.text, done:st.done, box: st.done?'#7a9a6f':'#fbfbfa', check: st.done?'✓':'', col: st.done?'#a4abae':'#2b3034', deco: st.done?'line-through':'none', onToggle:()=>this.toggleStep(n.id,st.id), onRemove:()=>this.removeStep(n.id,st.id) })); }
   firstStepInfo(n){
     const st=(n&&n.steps||[]).find(x=>!x.done);
-    if(st)return {text:st.text,doneWhen:'You can mark this step complete',duration:null,source:'your step',routeNodeId:null};
+    if(st)return {text:st.text,doneWhen:st.doneWhen||'You can mark this step complete',duration:st.durationMinutes||null,source:st.source==='ai_suggested'?'AI suggestion':'your step',routeNodeId:null,whyThis:st.whyThis||''};
     if(n&&n.resumeCue)return {text:n.resumeCue,doneWhen:'You have moved past your saved resume point',duration:null,source:'resume point',routeNodeId:null};
     return this.routeFrontierInfo(n);
   }
@@ -488,12 +525,14 @@ export default class App extends React.Component {
     const rel=(ts)=>{ const d=today-Math.floor(ts/day); return d<=0?'Today':d===1?'Yesterday':d+' days ago'; };
     const journal=sess.slice(0,6).map(x=>({ ts:x.ts, note:x.note||'Session', dur:(x.dur||0)+' min', date:rel(x.ts), mood:moodTxt[x.mood]||'', dot:moodDot[x.mood]||'#b6bec1', onRemove:()=>this.removeSession(n.id,x.ts) }));
     const steps=this.mapSteps(n);
+    const frontier=this.routeFrontierInfo(n);
+    const routeFrontier=frontier?{...frontier,onToggle:()=>this.toggleRouteNodeForInterest(n.id,frontier.routeNodeId),onOpen:()=>this.openRouteMap(n.id)}:null;
     return { id:n.id, label:n.label, color:this.groupColor(n.cluster), groupLabel:this.groupLabel(n.cluster),
       goal:n.directionState==='open'?(n.direction||'Open-ended — no finish line required'):(n.direction||'Direction still unclear'), directionState:n.directionState, progress:prog, progressKnown, progressTxt:progressKnown?Math.round(prog)+'%':trajectory, progressCaption:progressKnown?'through route':'trajectory', ringDash,
       streak, longest, thisWeek, cadence:n.cadence||4, weekTxt:(thisWeek)+' / '+(n.cadence||4)+' sessions this week',
       weeks, sparkPts:pts.join(' '), sparkFill:'0,70 '+pts.join(' ')+' 560,70', momentum,
       journal, empty:sess.length===0,
-      steps, noSteps:!(n.steps&&n.steps.length), onAddStep:()=>this.addStep(n.id), onStepKey:(e)=>{ if(e.key==='Enter') this.addStep(n.id); }, onSuggest:()=>this.suggestStep(n.id), onOpenRoute:()=>this.openRouteMap(n.id) };
+      steps, routeFrontier, noSteps:!(n.steps&&n.steps.length), onAddStep:()=>this.addStep(n.id), onStepKey:(e)=>{ if(e.key==='Enter') this.addStep(n.id); }, onSuggest:()=>this.suggestStep(n.id), onOpenRoute:()=>this.openRouteMap(n.id) };
   }
   openExpanded=(id)=>{ this.setState({ expandedId:id, selectedId:null, selectedIds:[], logOpen:false }); this.go(this.interestPath(id,'details')); };
   closeExpanded=()=>{ this.setState({ expandedId:null, logOpen:false }); this.go('/canvas'); };
@@ -571,6 +610,16 @@ export default class App extends React.Component {
     const r=this.canvasEl&&this.canvasEl.getBoundingClientRect();
     const z=this.state.zoom; const x=((r?r.width/2:500)-this.state.panX)/z-145, y=((r?r.height/2:340)-this.state.panY)/z-105;
     this.setState(s=>({ customGroups:[...s.customGroups,{key,label:'new group',color}], emptyFrames:{...s.emptyFrames,[key]:{x,y,w:290,h:210}}, labelOverrides:{...s.labelOverrides,[key]:'new group'}, editingGroup:key, groupName:'new group', tool:'select' }));
+  };
+  createGroupForInterest=(interestId,label)=>{
+    const name=String(label||'').trim().slice(0,48);
+    if(!interestId||!name)return;
+    this.pushHistory();
+    const key='grp'+Date.now();
+    this.setState(s=>{
+      const color=this.palette[s.customGroups.length%this.palette.length];
+      return {customGroups:[...s.customGroups,{key,label:name,color}],labelOverrides:{...s.labelOverrides,[key]:name},nodes:s.nodes.map(n=>n.id===interestId?{...n,cluster:key}:n)};
+    });
   };
   beginRenameGroup = (key) => this.setState({ editingGroup:key, groupName:this.groupLabel(key) });
   onGroupNameInput = (e) => { const v=e.target.value; this.setState(s=>({ groupName:v, labelOverrides:{...s.labelOverrides,[s.editingGroup]:v} })); };
@@ -841,13 +890,12 @@ export default class App extends React.Component {
   generateDecisionStep=async(node,requestId)=>{
     let info=null;
     try{
-      const recent=(node.sessions||[]).slice(-4).map(x=>x.note).filter(Boolean).join('; ');
-      const res=await fetch('/api/suggest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label:node.label,posture:node.posture,directionState:node.directionState,direction:node.direction||'',currentPosition:node.currentPosition||'',resumeCue:node.resumeCue||'',recent,time:this.state.filters.time,energy:this.state.filters.energy,mood:this.state.filters.mood})});
-      if(res.ok){const j=await res.json();if(j.action||j.step)info={text:String(j.action||j.step).slice(0,140),doneWhen:String(j.doneWhen||'You completed the proposed action').slice(0,160),duration:j.durationMinutes||null,source:'suggested',routeNodeId:null};}
+      const res=await fetch('/api/suggest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...this.nextMoveRequest(node),time:this.state.filters.time,energy:this.state.filters.energy,mood:this.state.filters.mood})});
+      if(res.ok){const j=await res.json();if(j.action||j.step)info={text:String(j.action||j.step).slice(0,140),doneWhen:String(j.doneWhen||'You completed the proposed action').slice(0,160),duration:j.durationMinutes||null,source:'suggested',routeNodeId:null,whyThis:String(j.whyThis||'').slice(0,180),actionType:j.actionType||null};}
     }catch(e){}
     if(!info)info=this.offlineStep(node);
     if(requestId!==this._decisionRequest||this.state.chosenId!==node.id)return;
-    this.setState({chosenStep:info.text,chosenDoneWhen:info.doneWhen,chosenDuration:info.duration,chosenStepSource:info.source,chosenStepBusy:false,chosenRouteNodeId:null});
+    this.setState(s=>({chosenStep:info.text,chosenDoneWhen:info.doneWhen,chosenDuration:info.duration,chosenStepSource:info.source,chosenStepBusy:false,chosenRouteNodeId:null,chosenWhy:info.whyThis||s.chosenWhy}));
   };
   notToday = () => {
     const id = this.state.chosenId;
@@ -995,24 +1043,25 @@ export default class App extends React.Component {
     ];
 
     const sel = byId[s.selectedId];
-    const clusterKeys = [ ...this.themes.map(t=>[t.key, this.groupLabel(t.key)]), ...s.customGroups.map(g=>[g.key, this.groupLabel(g.key)]) ];
+    const clusterKeys = [ ...this.themes.map(t=>[t.key, this.groupLabel(t.key)]), ['other',this.groupLabel('other')], ...s.customGroups.map(g=>[g.key, this.groupLabel(g.key)]) ];
     let selData = null;
     if (sel) {
       const postureLabels={explore:'explore',practice:'practice',build:'build',maintain:'maintain'};
       const stateLabels={directed:'↗ directed',open:'∞ open-ended',unclear:'? unclear'};
       const seasonLabels={active:'active',warm:'warm',resting:'resting'};
+      const frontier=this.routeFrontierInfo(sel);
       selData = {
         id:sel.id,label: sel.label, meta: sel.meta || '', note: sel.note || '', posture:sel.posture,directionState:sel.directionState,direction:sel.direction||'',currentPosition:sel.currentPosition||'',season:sel.season,
         dots: [1,2,3].map(k => ({ bg: k <= (sel.energy||0) ? A : '#cbd0d2', onClick:()=>this.setEnergy(sel.id,k) })),
-        clusterChips: clusterKeys.map(([k,lab]) => { const on = sel.cluster===k; const col=this.groupColor(k); return { label:lab, onSelect:()=>this.setCluster(sel.id,k), bg:on?col:'#fbfbfa', color:on?'#fff':'#2b3034', border:on?col:'#b7bec1' }; }),
+        clusterChips: clusterKeys.map(([k,lab]) => { const on = sel.cluster===k; const col=this.groupColor(k); return { key:k,label:lab,active:on,tone:col,onSelect:()=>this.setCluster(sel.id,k),bg:on?col:'#fbfbfa',color:on?'#fff':'#2b3034',border:on?col:'#b7bec1' }; }),
         postureChips:Object.keys(postureLabels).map(k=>{const on=sel.posture===k;return{label:postureLabels[k],onSelect:()=>this.setPosture(sel.id,k),bg:on?A:'#fbfbfa',color:on?'#fff':'#2b3034',border:on?A:'#b7bec1'};}),
         directionStateChips:Object.keys(stateLabels).map(k=>{const on=sel.directionState===k;return{label:stateLabels[k],onSelect:()=>this.setDirectionState(sel.id,k),bg:on?(k==='open'?'#b0975a':A):'#fbfbfa',color:on?'#fff':'#2b3034',border:on?(k==='open'?'#b0975a':A):'#b7bec1'};}),
         seasonChips:Object.keys(seasonLabels).map(k=>{const on=sel.season===k;return{label:seasonLabels[k],onSelect:()=>this.setSeason(sel.id,k),bg:on?(k==='resting'?'#8a9196':A):'#fbfbfa',color:on?'#fff':'#2b3034',border:on?(k==='resting'?'#8a9196':A):'#b7bec1'};}),
         directionPrompt:sel.directionState==='open'?'what do you want this to keep giving you?':sel.posture==='explore'?'what would satisfy your curiosity for now?':sel.posture==='practice'?'what would you like to be able to do?':sel.posture==='build'?'what do you want to exist?':'what rhythm or condition would feel like enough?',
         step: this.firstStepText(sel),
-        steps: this.mapSteps(sel), noSteps: !(sel.steps&&sel.steps.length),
+        steps: this.mapSteps(sel), routeFrontier:frontier?{...frontier,onToggle:()=>this.toggleRouteNodeForInterest(sel.id,frontier.routeNodeId),onOpen:()=>this.openRouteMap(sel.id)}:null, noSteps: !(sel.steps&&sel.steps.length),
         onAddStep: ()=>this.addStep(sel.id), onStepKey: (e)=>{ if(e.key==='Enter') this.addStep(sel.id); }, onSuggest: ()=>this.suggestStep(sel.id),
-        onOpenRoute:()=>this.openRouteMap(sel.id),routeCount:sel.routeMap?(sel.routeMap.nodes||[]).filter(x=>!['origin','destination'].includes(x.type)).length:0,
+        onOpenRoute:()=>this.openRouteMap(sel.id),onCreateGroup:(label)=>this.createGroupForInterest(sel.id,label),routeCount:sel.routeMap?(sel.routeMap.nodes||[]).filter(x=>!['origin','destination'].includes(x.type)).length:0,
         touched: sel.lastTouched ? this.since(sel.lastTouched) : 'not yet',
       };
     }
@@ -1026,7 +1075,7 @@ export default class App extends React.Component {
         return {...n,blockedBy,reachable:this.routeReachable(map,n),onToggle:()=>this.toggleRouteNode(n.id),onAdd:()=>this.beginRouteAdd(n.id),onMoveStart:this.beginRouteNodeMove,onMove:(x,y)=>this.moveRouteNode(n.id,x,y)};
       });
       const parent=map.nodes.find(n=>n.id===s.routeAddParent);
-      route={interest:routeInterest,map:{...map,nodes:routeNodes},busy:s.routeDraftBusy,error:s.routeDraftError,onClose:this.closeRouteMap,onGenerate:this.generateRouteDraft,onAccept:this.acceptRouteDraft,onAutoArrange:this.autoArrangeRoute,onBeginAdd:this.beginRouteAdd,addOpen:!!s.routeAddParent,addParentLabel:parent?parent.label:'',addLabel:s.routeAddLabel,onAddLabel:this.onRouteAddLabel,addType:s.routeAddType,typeChips:['task','milestone','capability','resource','experiment','decision'].map(type=>({type,label:type,onSelect:()=>this.setRouteAddType(type),active:s.routeAddType===type})),onAddNode:this.addRouteNode,onCancelAdd:this.cancelRouteAdd};
+      route={interest:routeInterest,map:{...map,nodes:routeNodes},busy:s.routeDraftBusy,error:s.routeDraftError,canTidy:map.nodes.some(n=>Number.isFinite(n.x)||Number.isFinite(n.y)),onClose:this.closeRouteMap,onGenerate:this.generateRouteDraft,onAccept:this.acceptRouteDraft,onAutoArrange:this.autoArrangeRoute,onBeginAdd:this.beginRouteAdd,addOpen:!!s.routeAddParent,addParentLabel:parent?parent.label:'',addLabel:s.routeAddLabel,onAddLabel:this.onRouteAddLabel,addType:s.routeAddType,typeChips:['task','milestone','capability','resource','experiment','decision'].map(type=>({type,label:type,onSelect:()=>this.setRouteAddType(type),active:s.routeAddType===type})),onAddNode:this.addRouteNode,onCancelAdd:this.cancelRouteAdd};
     }
     const chosen = byId[s.chosenId];
     const touchedNodes = s.nodes.filter(n=>n.lastTouched&&!['resting','harvested','released'].includes(n.season));
@@ -1213,7 +1262,7 @@ export default class App extends React.Component {
 
           {/* spinning toast */}
           {v.spinning && (
-            <div className="absolute bottom-[110px] left-1/2 z-[14] -translate-x-1/2 animate-[fadeUp_.2s_ease] whitespace-nowrap rounded-[13px] bg-ink px-[22px] py-3 font-hand text-2xl font-bold text-white shadow-[3px_4px_0_rgba(0,0,0,.2)] sm:bottom-[34px]">choosing for you…</div>
+            <div className="pointer-events-none absolute bottom-[calc(max(12px,env(safe-area-inset-bottom))+76px)] left-1/2 z-[22] -translate-x-1/2 animate-[fadeUp_.2s_ease] whitespace-nowrap rounded-[13px] border border-white/15 bg-ink px-[22px] py-3 font-hand text-2xl font-bold text-white shadow-[3px_4px_0_rgba(0,0,0,.2)] sm:bottom-[104px]">choosing a thread…</div>
           )}
         </div>
 

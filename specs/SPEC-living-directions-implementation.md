@@ -339,6 +339,15 @@ The connected Supabase migration is a later slice. This slice keeps the existing
 - Opened an interest and confirmed its direction, current position, Route Map, next moves, check-in, settings disclosure, account status, and close/expand controls fit in a full-screen mobile sheet.
 - Opened Decide and Route Map at phone width; both stayed within the viewport, Route Map opened at a whole-map 27% fit with touch panning and zoom controls, and captured browser logs contained no warnings or errors.
 
+### Next-move and Route Map coherence
+
+- Surfaced the first reachable Route Map node inside both interest detail views, so a populated route no longer appears to have “no next moves.”
+- Reframed Decide as a two-level choice: Skein picks a thread, then presents one concrete move as the primary result with provenance, duration, and an observable finish line.
+- Kept the shuffle status above the persistent toolbar, compacted the desktop Route Map guide, and made Tidy Map explicitly report when the map is already tidy.
+- Added a calm thread loader for AI route drafting and AI-shaped Decide results.
+- Enriched Route Map drafting with current position, saved moves, recent activity, resume cue, and the previous route; tightened the generation contract against generic or synonymous nodes.
+- Enriched next-move generation with group, usual energy, private context, structured recent sessions, saved-move state, and completed/reachable Route Map context; AI move metadata now survives into later Decide sessions.
+
 ---
 
 ## 6. Remaining work
