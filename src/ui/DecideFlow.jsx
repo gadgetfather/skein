@@ -19,7 +19,7 @@ export default function DecideFlow({ v }) {
               )}
               <button onClick={v.startShuffle} className="mb-3 flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left text-white bg-accent rounded-[13px_10px_13px_10px] border-[1.6px] border-ink-line shadow-[2px_3px_0_rgba(58,64,69,.18)]">
                 <svg width="26" height="26" viewBox="0 0 16 16" className="flex-none"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="none" stroke="#fff" strokeWidth="1.5"/><circle cx="5" cy="5" r="1.3" fill="#fff"/><circle cx="11" cy="5" r="1.3" fill="#fff"/><circle cx="8" cy="8" r="1.3" fill="#fff"/><circle cx="5" cy="11" r="1.3" fill="#fff"/><circle cx="11" cy="11" r="1.3" fill="#fff"/></svg>
-                <span><span className="block text-base font-bold">just pick for me</span><span className="text-xs opacity-90">weighted by energy + what you've been avoiding</span></span>
+                <span><span className="block text-base font-bold">just pick for me</span><span className="text-xs opacity-90">weighs calling, continuity, and quiet threads</span></span>
               </button>
               <button onClick={v.startFilter} className="flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left text-ink bg-paper-2 rounded-[10px_13px_10px_13px] border-[1.6px] border-ink-line shadow-[2px_3px_0_rgba(58,64,69,.12)]">
                 <svg width="26" height="26" viewBox="0 0 16 16" className="flex-none" fill="none" stroke="#2b3034" strokeWidth="1.5" strokeLinecap="round"><path d="M2 3h12l-4.5 5.5V14L6.5 12V8.5z"/></svg>
@@ -58,8 +58,9 @@ export default function DecideFlow({ v }) {
             <div className="mb-2 inline-block px-2.5 py-[3px] text-xs text-accent-deep bg-[rgba(122,154,111,.14)] rounded-[9px] border-[1.4px] border-accent">{v.chosenReason}</div>
             <div className="mb-4 text-[12.5px] leading-[1.45] text-[#5c6166]">{v.chosenWhy}</div>
             <div className="p-3.5 bg-paper-2 rounded-[11px_8px_12px_7px] border-[1.6px] border-ink-line shadow-[2px_3px_0_rgba(58,64,69,.1)]">
-              <div className="mb-[5px] text-[11px] uppercase tracking-[.06em] text-[#90999d]">your tiny next step</div>
+              <div className="mb-[5px] flex items-center justify-between gap-2 text-[11px] uppercase tracking-[.06em] text-[#90999d]"><span>your reachable move</span>{v.chosenStepSource&&<span className="normal-case tracking-normal text-accent-deep">{v.chosenStepSource}</span>}</div>
               <div className="text-base leading-[1.35] text-ink">{v.chosenStep}</div>
+              {!v.chosenStepBusy&&(v.chosenDoneWhen||v.chosenDuration)&&<div className="mt-2.5 flex flex-wrap items-center gap-2 border-t-[1.2px] border-dashed border-[#d3d9db] pt-2 text-[11px] text-muted-2">{v.chosenDuration&&<span className="rounded-md bg-[rgba(122,154,111,.12)] px-1.5 py-0.5 font-semibold text-accent-deep">~{v.chosenDuration} min</span>}{v.chosenDoneWhen&&<span><b className="text-ink">done when:</b> {v.chosenDoneWhen}</span>}</div>}
             </div>
             {v.hasCombo && (
               <div className="mt-3 bg-transparent px-3.5 py-[11px] rounded-[11px_8px_12px_7px] border-[1.4px] border-dashed border-[#b6bec1]">
@@ -68,7 +69,7 @@ export default function DecideFlow({ v }) {
               </div>
             )}
             <div className="mt-[18px] flex gap-2.5">
-              <button onClick={v.startThis} className="flex-1 cursor-pointer p-[11px] text-[15px] font-bold text-white bg-accent rounded-[11px_9px_12px_9px] border-[1.6px] border-ink-line shadow-[2px_3px_0_rgba(58,64,69,.18)]">start this</button>
+              <button onClick={v.startThis} disabled={v.chosenStepBusy} className="flex-1 cursor-pointer p-[11px] text-[15px] font-bold text-white bg-accent rounded-[11px_9px_12px_9px] border-[1.6px] border-ink-line shadow-[2px_3px_0_rgba(58,64,69,.18)] disabled:cursor-wait disabled:opacity-60">{v.chosenStepBusy?'shaping the step…':'start this'}</button>
               <button onClick={v.notToday} className="cursor-pointer px-4 py-[11px] text-sm font-semibold text-ink bg-paper-2 rounded-[9px_11px_8px_12px] border-[1.6px] border-ink-line shadow-[2px_3px_0_rgba(58,64,69,.1)]">not today ↻</button>
             </div>
           </div>

@@ -8,6 +8,8 @@ import DetailDrawer from './ui/DetailDrawer';
 import ExpandedDetail from './ui/ExpandedDetail';
 import FocusOverlay from './ui/FocusOverlay';
 import Onboarding from './ui/Onboarding';
+import RouteMap from './ui/RouteMap';
+import { canvasDocumentFromState, normalizeCanvasDocument } from './lib/canvas-document';
 
 export default class App extends React.Component {
   constructor(props) {
@@ -38,17 +40,18 @@ export default class App extends React.Component {
       { id:'ck', label:'Learn cooking',  cluster:'body',  meta:'craft',    energy:2, x:260, y:540 },
       { id:'ht', label:'Improve health', cluster:'body',  meta:'upkeep',   energy:1, x:520, y:630 },
     ];
-    let saved = null;
-    try { saved = JSON.parse(localStorage.getItem('skein.nodes.v1')); } catch(e){}
+    const cloudDocument = props.cloudDocument ? normalizeCanvasDocument(props.cloudDocument) : null;
+    let saved = cloudDocument?.nodes || null;
+    if (!cloudDocument) try { saved = JSON.parse(localStorage.getItem('skein.nodes.v1')); } catch(e){}
     const firstRun = !(Array.isArray(saved) && saved.length);
     let initial = firstRun ? [] : saved;
     const validClusters = new Set(['learn','craft','body','other']);
-    initial = initial.map(n => validClusters.has(n.cluster) ? n : { ...n, cluster: this.classify(n) });
+    initial = initial.map(n => this.normalizeNode(validClusters.has(n.cluster) ? n : { ...n, cluster: this.classify(n) }));
     this.seed = seed;
     const seedEdges = [['ja','rd'],['rd','wr'],['dv','sd'],['ds','sd'],['dv','ds'],['wr','ds'],['ck','ht']];
     this.seedEdges = seedEdges;
-    let savedE=null; try { savedE=JSON.parse(localStorage.getItem('skein.edges.v1')); } catch(e){}
-    let savedG=null; try { savedG=JSON.parse(localStorage.getItem('skein.groups.v1')); } catch(e){}
+    let savedE=cloudDocument?.edges || null; if(!cloudDocument) try { savedE=JSON.parse(localStorage.getItem('skein.edges.v1')); } catch(e){}
+    let savedG=cloudDocument?.groups || null; if(!cloudDocument) try { savedG=JSON.parse(localStorage.getItem('skein.groups.v1')); } catch(e){}
     savedG = savedG || {};
     this.state = {
       nodes: initial,
@@ -64,20 +67,48 @@ export default class App extends React.Component {
       expandedId:null, logOpen:false, logDur:25, logNote:'', logMood:'ok', pomoSec:1500, pomoRunning:false,
       focusOpen:false, focusMinimized:false, focusNodeId:null, focusTotal:1800, focusLeft:1800, focusRunning:false, focusDone:false,
       stepDraft:'', aiBusy:false,
+      routeMapOpenId:null, routeDraftBusy:false, routeDraftError:'', routeAddParent:null, routeAddLabel:'', routeAddType:'task',
       adding:false, addX:0, addY:0, newLabel:'', newPriority:2,
       dumpOpen:false, dumpText:'',
       phase:null,               // 'menu' | 'filter'
       spinning:false, spinId:null,
-      chosenId:null, resultOpen:false, chosenReason:'', chosenStep:'', chosenWhy:'', chosenCombo:'', chosenComboPartner:'', decideMode:null, excluded:[],
+      chosenId:null, resultOpen:false, chosenReason:'', chosenStep:'', chosenDoneWhen:'', chosenDuration:null, chosenStepSource:'', chosenStepBusy:false, chosenRouteNodeId:null, chosenWhy:'', chosenCombo:'', chosenComboPartner:'', decideMode:null, excluded:[],
       filters:{ time:null, energy:null, mood:null },
+      focusStepText:'', focusRouteNodeId:null,
     };
     this.clusterMeta = { mind:'mind & language', build:'build & ship', body:'body & fuel' };
     this.NW = 154; this.NHc = 48; // node width, half-height (fixed node height 96)
+    this._decisionRequest = 0;
+    this._cloudRevision = props.cloudRevision || null;
+  }
+  normalizeNode(n){
+    const posture=['explore','practice','build','maintain'].includes(n.posture)?n.posture:'explore';
+    const direction=typeof n.direction==='string'?n.direction:(typeof n.goal==='string'?n.goal:'');
+    const directionState=['directed','open','unclear'].includes(n.directionState)?n.directionState:(direction?'directed':'unclear');
+    const season=['active','warm','resting','harvested','released'].includes(n.season)?n.season:'active';
+    return { ...n, posture, directionState, direction, currentPosition:typeof n.currentPosition==='string'?n.currentPosition:'', season, calling:Math.min(3,Math.max(1,n.calling||n.priority||2)), resumeCue:typeof n.resumeCue==='string'?n.resumeCue:'', routeMap:n.routeMap&&Array.isArray(n.routeMap.nodes)&&Array.isArray(n.routeMap.edges)?n.routeMap:null };
+  }
+  applyCloudDocument(document){
+    const value=normalizeCanvasDocument(document);
+    const validClusters=new Set(['learn','craft','body','other']);
+    const nodes=value.nodes.map(n=>this.normalizeNode(validClusters.has(n.cluster)?n:{...n,cluster:this.classify(n)}));
+    this._syncSnapshot=JSON.stringify(value);
+    this.setState({
+      nodes,
+      edges:value.edges,
+      customGroups:value.groups.customGroups,
+      emptyFrames:value.groups.emptyFrames,
+      labelOverrides:value.groups.labelOverrides,
+      showOnboarding:nodes.length===0,
+      selectedId:null,selectedIds:[],expandedId:null,routeMapOpenId:null,
+      phase:null,resultOpen:false,logOpen:false,routeAddParent:null,
+    },()=>this.applyRoute(this.props.pathname));
   }
   componentDidMount(){ this._onKey = (e)=>this.handleKey(e); window.addEventListener('keydown', this._onKey);
     this._onKeyUp = (e)=>this.handleKeyUp(e); window.addEventListener('keyup', this._onKeyUp);
     this._onBlur = ()=>{ if(this._spaceHeld){ this._spaceHeld=false; this.setState({ spacePan:false, panning:false }); } }; window.addEventListener('blur', this._onBlur);
     this._ht = setInterval(()=>{ if(!this.state.showOnboarding) return; this.setState({hOpacity:0}); setTimeout(()=>this.setState(st=>({hIndex:(st.hIndex+1)%this.headlines.length, hOpacity:1})),420); }, 4200);
+    this.applyRoute(this.props.pathname);
   }
   componentWillUnmount(){ if(this._spin) clearInterval(this._spin); if(this._ht) clearInterval(this._ht); if(this._micNote) clearTimeout(this._micNote); if(this._rec){ try{ this._rec.stop(); }catch(e){} } if(this._pomo) clearInterval(this._pomo); if(this._focus) clearInterval(this._focus); if(this._onKey) window.removeEventListener('keydown', this._onKey); if(this._onKeyUp) window.removeEventListener('keyup', this._onKeyUp); if(this._onBlur) window.removeEventListener('blur', this._onBlur); }
   parseInterests(text){
@@ -142,7 +173,7 @@ export default class App extends React.Component {
       const z=this.state.zoom; const startX=((W/2)-this.state.panX)/z-((cols-1)*gapX)/2-77;
       const startY=((H/2)-this.state.panY)/z-((rows-1)*gapY)/2-48;
       const now=Date.now();
-      const nodes=order.map((orig,i)=>{ const it=items[orig]; const col=i%cols,row=Math.floor(i/cols); return { id:'w'+now+i, ...it, x:Math.round(startX+col*gapX+(Math.random()*20-10)), y:Math.round(startY+row*gapY+(Math.random()*20-10)) }; });
+      const nodes=order.map((orig,i)=>{ const it=items[orig]; const col=i%cols,row=Math.floor(i/cols); return this.normalizeNode({ id:'w'+now+i, ...it, x:Math.round(startX+col*gapX+(Math.random()*20-10)), y:Math.round(startY+row*gapY+(Math.random()*20-10)) }); });
       const seen=new Set();
       const edges=(woven.edges||[]).filter(e=>e && Number.isInteger(e.a) && Number.isInteger(e.b) && e.a!==e.b && items[e.a] && items[e.b]).map(e=>({ a:nodes[posOf[e.a]].id, b:nodes[posOf[e.b]].id })).filter(e=>{ const k=[e.a,e.b].sort().join('|'); if(seen.has(k)) return false; seen.add(k); return true; });
       this.setState({ nodes, edges, showOnboarding:false, onbFading:false, weaving:false, inputVal:'' });
@@ -152,7 +183,7 @@ export default class App extends React.Component {
     this.setState({onbFading:true});
     setTimeout(()=>{
       const valid=new Set(['learn','craft','body','other']);
-      const nodes=this.seed.map(n=>({ ...n, cluster: valid.has(n.cluster)?n.cluster:this.classify(n) }));
+      const nodes=this.seed.map(n=>this.normalizeNode({ ...n, cluster: valid.has(n.cluster)?n.cluster:this.classify(n) }));
       this.setState({ nodes, edges:this.seedEdges.map(([a,b])=>({a,b})), showOnboarding:false, onbFading:false });
     },420);
   };
@@ -179,12 +210,15 @@ export default class App extends React.Component {
       return;
     }
     if (e.key === 'Escape') {
+      if (s.routeMapOpenId) { this.closeRouteMap(); return; }
+      if (s.logOpen) { this.closeLog(); return; }
+      if (s.expandedId) { this.closeExpanded(); return; }
       if (s.adding) { this.setState({ adding:false, newLabel:'' }); return; }
       if (s.connectMode) { if (s.pendingConnect) this.setState({ pendingConnect:null }); else this.setState({ connectMode:false }); return; }
-      if (s.resultOpen) { this.setState({ resultOpen:false }); return; }
-      if (s.phase) { this.setState({ phase:null }); return; }
+      if (s.resultOpen) { this.closeResult(); return; }
+      if (s.phase) { this.closeDecide(); return; }
       if (s.dumpOpen) { this.setState({ dumpOpen:false }); return; }
-      if (s.selectedId || (s.selectedIds&&s.selectedIds.length)) { this.setState({ selectedId:null, selectedIds:[] }); return; }
+      if (s.selectedId || (s.selectedIds&&s.selectedIds.length)) { this.closePopover(); return; }
       if (s.tool !== 'select') { this.setState({ tool:'select' }); return; }
       return;
     }
@@ -204,14 +238,14 @@ export default class App extends React.Component {
   };
   snapshot(){ const s=this.state; return JSON.stringify({nodes:s.nodes, edges:s.edges, customGroups:s.customGroups, emptyFrames:s.emptyFrames, labelOverrides:s.labelOverrides}); }
   pushHistory(){ if(!this._hist) this._hist=[]; this._hist.push(this.snapshot()); if(this._hist.length>60) this._hist.shift(); this._future=[]; }
-  undo = () => { if(!this._hist||!this._hist.length) return; if(!this._future) this._future=[]; this._future.push(this.snapshot()); const snap=JSON.parse(this._hist.pop()); this.setState({ ...snap, selectedId:null, selectedIds:[] }); };
-  redo = () => { if(!this._future||!this._future.length) return; this._hist.push(this.snapshot()); const snap=JSON.parse(this._future.pop()); this.setState({ ...snap, selectedId:null, selectedIds:[] }); };
-  selectAll(){ this.setState(s=>({ selectedIds:s.nodes.map(n=>n.id), selectedId:null })); }
+  undo = () => { if(!this._hist||!this._hist.length) return; if(!this._future) this._future=[]; this._future.push(this.snapshot()); const snap=JSON.parse(this._hist.pop()); this.setState({ ...snap, selectedId:null, selectedIds:[] }); this.go('/canvas'); };
+  redo = () => { if(!this._future||!this._future.length) return; this._hist.push(this.snapshot()); const snap=JSON.parse(this._future.pop()); this.setState({ ...snap, selectedId:null, selectedIds:[] }); this.go('/canvas'); };
+  selectAll(){ this.setState(s=>({ selectedIds:s.nodes.map(n=>n.id), selectedId:null })); this.go('/canvas'); }
   selIds(){ const s=this.state; if(s.selectedIds&&s.selectedIds.length) return s.selectedIds; if(s.selectedId) return [s.selectedId]; return []; }
   copySel(){ const ids=this.selIds(); if(!ids.length) return; const set=new Set(ids); this._clip=this.state.nodes.filter(n=>set.has(n.id)).map(n=>({...n})); }
-  deleteSel(){ const ids=this.selIds(); if(!ids.length) return; this.pushHistory(); const set=new Set(ids); this.setState(s=>({ nodes:s.nodes.filter(n=>!set.has(n.id)), edges:s.edges.filter(e=>!set.has(e.a)&&!set.has(e.b)), selectedId:null, selectedIds:[], chosenId: set.has(s.chosenId)?null:s.chosenId })); }
+  deleteSel(){ const ids=this.selIds(); if(!ids.length) return; this.pushHistory(); const set=new Set(ids); this.setState(s=>({ nodes:s.nodes.filter(n=>!set.has(n.id)), edges:s.edges.filter(e=>!set.has(e.a)&&!set.has(e.b)), selectedId:null, selectedIds:[], chosenId: set.has(s.chosenId)?null:s.chosenId })); this.go('/canvas'); }
   cutSel(){ this.copySel(); this.deleteSel(); }
-  pasteSel(){ if(!this._clip||!this._clip.length) return; this.pushHistory(); const now=Date.now(); const news=this._clip.map((n,i)=>({ ...n, id:'p'+now+i, x:(n.x||0)+34, y:(n.y||0)+34 })); this.setState(s=>({ nodes:[...s.nodes, ...news], selectedIds:news.map(n=>n.id), selectedId:null })); this._clip=news.map(n=>({...n})); }
+  pasteSel(){ if(!this._clip||!this._clip.length) return; this.pushHistory(); const now=Date.now(); const news=this._clip.map((n,i)=>({ ...n, id:'p'+now+i, x:(n.x||0)+34, y:(n.y||0)+34 })); this.setState(s=>({ nodes:[...s.nodes, ...news], selectedIds:news.map(n=>n.id), selectedId:null })); this._clip=news.map(n=>({...n})); this.go('/canvas'); }
   duplicateSel(){ this.copySel(); this.pasteSel(); }
 
   clusterBoundsFor(key, nodes){
@@ -223,35 +257,204 @@ export default class App extends React.Component {
     const h=Math.max(...ys.map(v=>v+96))-Math.min(...ys)+74;
     return {x,y,w,h};
   }
-  selectNode = (id)=> this.setState({selectedId:id});
-  closePopover = ()=> this.setState({selectedId:null});
+  routeView(pathname=this.props.pathname){
+    const parts=(pathname||'/canvas').split('?')[0].split('/').filter(Boolean).map(part=>{ try{return decodeURIComponent(part);}catch(_){return part;} });
+    if(parts[0]!=='canvas')return {kind:'canvas'};
+    if(parts[1]==='interests'&&parts[2]){
+      if(parts[3]==='details')return {kind:'details',id:parts[2]};
+      if(parts[3]==='route')return {kind:'route',id:parts[2]};
+      return {kind:'interest',id:parts[2]};
+    }
+    if(parts[1]==='decide'&&parts[2]==='filter')return {kind:'decide-filter'};
+    if(parts[1]==='decide'&&parts[2]==='result'&&parts[3])return {kind:'decide-result',id:parts[3]};
+    if(parts[1]==='decide')return {kind:'decide'};
+    return {kind:'canvas'};
+  }
+  go=(path,replace=false)=>{
+    if(!this.props.navigate||this.props.pathname===path)return;
+    this.props.navigate(path,{replace});
+  };
+  interestPath=(id,suffix='')=>'/canvas/interests/'+encodeURIComponent(id)+(suffix?'/'+suffix:'');
+  decisionPath=(id)=>'/canvas/decide/result/'+encodeURIComponent(id);
+  applyRoute(pathname){
+    const view=this.routeView(pathname);
+    const node=view.id?this.state.nodes.find(n=>n.id===view.id):null;
+    if(view.id&&!node){ this.go('/canvas',true); return; }
+    if(this._spin){ clearInterval(this._spin); this._spin=null; }
+    if(view.kind!=='decide-result')this._decisionRequest++;
+    const cleared={selectedId:null,selectedIds:[],expandedId:null,routeMapOpenId:null,phase:null,logOpen:false,routeAddParent:null,routeAddLabel:'',routeDraftError:'',spinning:false,spinId:null};
+    if(view.kind==='interest'){
+      this.setState({...cleared,selectedId:view.id,selectedIds:[view.id],resultOpen:false});
+      return;
+    }
+    if(view.kind==='details'){
+      this.setState({...cleared,expandedId:view.id,resultOpen:false});
+      return;
+    }
+    if(view.kind==='route'){
+      let routeMap=node.routeMap||this.makeRouteShell(node);
+      const nodes=(routeMap.nodes||[]).map(routeNode=>routeNode.type==='origin'?{...routeNode,label:node.currentPosition||routeNode.label||'Where you are today'}:routeNode.type==='destination'?{...routeNode,label:node.directionState==='open'?'Keep the road open':(node.direction||routeNode.label||'Choose a direction')}:routeNode);
+      routeMap={...routeMap,nodes};
+      this.setState(s=>({...cleared,nodes:s.nodes.map(n=>n.id===view.id?{...n,routeMap}:n),routeMapOpenId:view.id,resultOpen:false}));
+      return;
+    }
+    if(view.kind==='decide-filter'){
+      this.setState({...cleared,phase:'filter',resultOpen:false});
+      return;
+    }
+    if(view.kind==='decide-result'){
+      if(this.state.chosenId===view.id&&this.state.chosenStep){
+        this.setState({...cleared,resultOpen:true});
+        return;
+      }
+      this.setState({...cleared},()=>this.landOn(node,'the thread selected for this decision'));
+      return;
+    }
+    if(view.kind==='decide'){
+      this.setState({...cleared,phase:'menu',resultOpen:false});
+      return;
+    }
+    this.setState({...cleared,resultOpen:false});
+  }
+  openInterest = (id)=>{ this.setState({selectedId:id,selectedIds:[id],adding:false}); this.go(this.interestPath(id)); };
+  selectNode = (id)=> this.openInterest(id);
+  closePopover = ()=>{ this.setState({selectedId:null,selectedIds:[]}); this.go('/canvas'); };
   onRenameInput = (e)=>{ const v=e.target.value; this.setState(s=>({nodes:s.nodes.map(n=>n.id===s.selectedId?{...n,label:v}:n)})); };
   setEnergy = (id,k)=> { this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,energy:k}:n)})); };
-  deleteSelected = ()=> { this.pushHistory(); this.setState(s=>({nodes:s.nodes.filter(n=>n.id!==s.selectedId), edges:s.edges.filter(e=>e.a!==s.selectedId&&e.b!==s.selectedId), chosenId: s.chosenId===s.selectedId?null:s.chosenId, selectedId:null, selectedIds:[] })); };
+  deleteSelected = ()=> { this.pushHistory(); this.setState(s=>({nodes:s.nodes.filter(n=>n.id!==s.selectedId), edges:s.edges.filter(e=>e.a!==s.selectedId&&e.b!==s.selectedId), chosenId: s.chosenId===s.selectedId?null:s.chosenId, selectedId:null, selectedIds:[] })); this.go('/canvas'); };
   setCluster = (id,k)=> { this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,cluster:k}:n)})); };
   setPriority = (id,p)=> { this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,priority:p}:n)})); };
   setNewPriority = (p)=> this.setState({ newPriority:p });
   onMetaInput = (e)=>{ const v=e.target.value; this.setState(s=>({nodes:s.nodes.map(n=>n.id===s.selectedId?{...n,meta:v}:n)})); };
   onNoteInput = (e)=>{ const v=e.target.value; this.setState(s=>({nodes:s.nodes.map(n=>n.id===s.selectedId?{...n,note:v}:n)})); };
+  setPosture = (id,posture)=>{ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,posture}:n)})); };
+  setDirectionState = (id,directionState)=>{ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,directionState}:n)})); };
+  onDirectionInput = (e)=>{ const direction=e.target.value; this.setState(s=>({nodes:s.nodes.map(n=>n.id===s.selectedId?{...n,direction,directionState:direction&&n.directionState==='unclear'?'directed':n.directionState}:n)})); };
+  onCurrentPositionInput = (e)=>{ const currentPosition=e.target.value; this.setState(s=>({nodes:s.nodes.map(n=>n.id===s.selectedId?{...n,currentPosition}:n)})); };
+  setSeason = (id,season)=>{ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,season}:n)})); };
   markTouched = ()=> { this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===s.selectedId?{...n,lastTouched:Date.now()}:n)})); };
   onStepDraft=(e)=>this.setState({stepDraft:e.target.value});
   addStep=(id)=>{ const t=(this.state.stepDraft||'').trim(); if(!t||!id)return; this.pushHistory(); this.setState(s=>({ nodes:s.nodes.map(n=>n.id===id?{...n,steps:[...(n.steps||[]),{id:'st'+Date.now(),text:t,done:false}]}:n), stepDraft:'' })); };
   toggleStep=(id,sid)=>{ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,steps:(n.steps||[]).map(st=>st.id===sid?{...st,done:!st.done}:st)}:n)})); };
   removeStep=(id,sid)=>{ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,steps:(n.steps||[]).filter(st=>st.id!==sid)}:n)})); };
   removeSession=(id,ts)=>{ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,sessions:(n.sessions||[]).filter(x=>x.ts!==ts)}:n)})); };
+  makeRouteShell(n){
+    const stamp=Date.now();
+    return { id:'rm'+stamp, status:'active', version:1, assumptions:[], nodes:[
+      {id:'rn'+stamp+'start',key:'start',type:'origin',label:n.currentPosition||'Where you are today',stage:0,order:0,done:true,source:'user'},
+      {id:'rn'+stamp+'goal',key:'goal',type:'destination',label:n.directionState==='open'?'Keep the road open':(n.direction||'Choose a direction'),stage:5,order:0,done:false,source:'user'},
+    ], edges:[] };
+  }
+  routeReachable(map,node){
+    if(!map||!node||node.done||node.type==='origin'||node.type==='destination'||node.type==='blocker')return false;
+    const required=(map.edges||[]).filter(e=>e.to===node.id&&['requires','unlocks','produces'].includes(e.relationship||'unlocks'));
+    if(!required.length)return true;
+    return required.every(e=>{ const p=map.nodes.find(x=>x.id===e.from); return p&&p.done; });
+  }
+  routeFrontierInfo(n){
+    const map=n&&n.routeMap;
+    if(!map)return null;
+    const order={task:0,experiment:1,milestone:2,capability:3,resource:4,decision:5};
+    const node=(map.nodes||[]).filter(x=>this.routeReachable(map,x)).sort((a,b)=>(order[a.type]??9)-(order[b.type]??9)||(a.stage||0)-(b.stage||0)||(a.order||0)-(b.order||0))[0];
+    return node?{ text:node.label, doneWhen:node.doneWhen||'This route node is complete', duration:node.durationMinutes||null, source:'route frontier', routeNodeId:node.id }:null;
+  }
+  openRouteMap=(id)=>{
+    const n=this.state.nodes.find(x=>x.id===id); if(!n)return;
+    let routeMap=n.routeMap;
+    if(!routeMap){ this.pushHistory(); routeMap=this.makeRouteShell(n); }
+    const nodes=(routeMap.nodes||[]).map(x=>x.type==='origin'?{...x,label:n.currentPosition||x.label||'Where you are today'}:x.type==='destination'?{...x,label:n.directionState==='open'?'Keep the road open':(n.direction||x.label||'Choose a direction')}:x);
+    this.setState(s=>({nodes:s.nodes.map(x=>x.id===id?{...x,routeMap:{...routeMap,nodes}}:x),routeMapOpenId:id,selectedId:null,routeDraftError:'',routeAddParent:null,routeAddLabel:''}));
+    this.go(this.interestPath(id,'route'));
+  };
+  openSelectedRoute=()=>{ const id=this.state.selectedId; if(id)this.openRouteMap(id); };
+  closeRouteMap=()=>{ const id=this.state.routeMapOpenId; this.setState({routeMapOpenId:null,routeAddParent:null,routeAddLabel:'',routeDraftError:'',selectedId:id,selectedIds:id?[id]:[]}); this.go(id?this.interestPath(id):'/canvas'); };
+  beginRouteAdd=(parentId)=>this.setState({routeAddParent:parentId,routeAddLabel:'',routeAddType:'task'});
+  cancelRouteAdd=()=>this.setState({routeAddParent:null,routeAddLabel:''});
+  onRouteAddLabel=(e)=>this.setState({routeAddLabel:e.target.value});
+  setRouteAddType=(routeAddType)=>this.setState({routeAddType});
+  addRouteNode=()=>{
+    const interestId=this.state.routeMapOpenId, label=(this.state.routeAddLabel||'').trim(), parentId=this.state.routeAddParent;
+    if(!interestId||!label||!parentId)return;
+    this.pushHistory();
+    const id='rn'+Date.now();
+    this.setState(s=>({nodes:s.nodes.map(n=>{
+      if(n.id!==interestId||!n.routeMap)return n;
+      const parent=n.routeMap.nodes.find(x=>x.id===parentId); if(!parent)return n;
+      const stage=Math.min(4,Math.max(1,(parent.stage||0)+1));
+      const peers=n.routeMap.nodes.filter(x=>x.stage===stage).length;
+      const node={id,key:'manual_'+Date.now(),type:s.routeAddType,label,stage,order:peers,done:false,source:'user'};
+      return {...n,routeMap:{...n.routeMap,version:(n.routeMap.version||1)+1,nodes:[...n.routeMap.nodes,node],edges:[...n.routeMap.edges,{from:parentId,to:id,relationship:'unlocks'}]}};
+    }),routeAddParent:null,routeAddLabel:''}));
+  };
+  toggleRouteNode=(nodeId)=>{
+    const interestId=this.state.routeMapOpenId; if(!interestId)return;
+    const n=this.state.nodes.find(x=>x.id===interestId), node=n&&n.routeMap&&n.routeMap.nodes.find(x=>x.id===nodeId);
+    if(!n||!node||(!node.done&&!this.routeReachable(n.routeMap,node)))return;
+    this.pushHistory();
+    this.setState(s=>({nodes:s.nodes.map(x=>x.id===interestId?{...x,routeMap:{...x.routeMap,version:(x.routeMap.version||1)+1,nodes:x.routeMap.nodes.map(r=>r.id===nodeId?{...r,done:!r.done}:r)}}:x)}));
+  };
+  beginRouteNodeMove=()=>this.pushHistory();
+  moveRouteNode=(nodeId,x,y)=>{
+    const interestId=this.state.routeMapOpenId;if(!interestId)return;
+    this.setState(s=>({nodes:s.nodes.map(n=>n.id===interestId&&n.routeMap?{...n,routeMap:{...n.routeMap,nodes:n.routeMap.nodes.map(r=>r.id===nodeId?{...r,x:Math.round(x),y:Math.round(y)}:r)}}:n)}));
+  };
+  autoArrangeRoute=()=>{
+    const interestId=this.state.routeMapOpenId;if(!interestId)return;this.pushHistory();
+    this.setState(s=>({nodes:s.nodes.map(n=>n.id===interestId&&n.routeMap?{...n,routeMap:{...n.routeMap,version:(n.routeMap.version||1)+1,nodes:n.routeMap.nodes.map(({x,y,...r})=>r)}}:n)}));
+  };
+  acceptRouteDraft=()=>{
+    const id=this.state.routeMapOpenId;if(!id)return;this.pushHistory();
+    this.setState(s=>({nodes:s.nodes.map(n=>n.id===id&&n.routeMap?{...n,routeMap:{...n.routeMap,status:'active'}}:n)}));
+  };
+  generateRouteDraft=async()=>{
+    const id=this.state.routeMapOpenId, n=this.state.nodes.find(x=>x.id===id); if(!n||this.state.routeDraftBusy)return;
+    this.setState({routeDraftBusy:true,routeDraftError:''});
+    try{
+      const res=await fetch('/api/route-map',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label:n.label,posture:n.posture,directionState:n.directionState,direction:n.direction,currentPosition:n.currentPosition,notes:n.note||''})});
+      if(!res.ok)throw new Error('route_failed');
+      const data=await res.json();
+      const shell=this.makeRouteShell(n), stamp=Date.now(), keyToId={start:shell.nodes[0].id,goal:shell.nodes[1].id};
+      const destinationLabel=(n.direction||'').trim().toLowerCase();
+      const mids=(data.nodes||[]).slice(0,10).map((x,i)=>{ const key=String(x.key||('step_'+i)).replace(/[^a-z0-9_]/gi,'_').toLowerCase(); const rid='rn'+stamp+i; keyToId[key]=rid; return {id:rid,key,type:x.type||'milestone',label:String(x.label||'Untitled step').slice(0,90),description:String(x.description||'').slice(0,180),stage:Math.min(4,Math.max(1,Math.round(x.stage)||1)),order:Math.max(0,Math.round(x.order)||0),doneWhen:String(x.doneWhen||'').slice(0,140),durationMinutes:x.durationMinutes||null,done:false,source:'ai_suggested'}; }).filter(x=>!destinationLabel||x.label.trim().toLowerCase()!==destinationLabel);
+      const validRouteIds=new Set([shell.nodes[0].id,shell.nodes[1].id,...mids.map(x=>x.id)]);
+      const edges=(data.edges||[]).map(e=>({from:keyToId[String(e.from||'').toLowerCase()],to:keyToId[String(e.to||'').toLowerCase()],relationship:e.relationship||'unlocks'})).filter(e=>e.from&&e.to&&e.from!==e.to&&validRouteIds.has(e.from)&&validRouteIds.has(e.to));
+      if(mids.length){
+        mids.filter(x=>x.stage===Math.min(...mids.map(y=>y.stage))).forEach(x=>{ if(!edges.some(e=>e.to===x.id))edges.push({from:shell.nodes[0].id,to:x.id,relationship:'unlocks'}); });
+        mids.filter(x=>x.stage===Math.max(...mids.map(y=>y.stage))).forEach(x=>{ if(!edges.some(e=>e.from===x.id&&e.to===shell.nodes[1].id))edges.push({from:x.id,to:shell.nodes[1].id,relationship:'unlocks'}); });
+      }
+      this.pushHistory();
+      const assumptions=(Array.isArray(data.assumptions)?data.assumptions:[]).map(x=>String(x||'').trim()).filter(x=>x&&x.length<=240&&!/[{}\[\]]|(?:nodes|doneWhen|description|durationMinutes)['":]/i.test(x)).slice(0,4);
+      const routeMap={...shell,status:'draft',summary:String(data.summary||''),assumptions,nodes:[shell.nodes[0],...mids,shell.nodes[1]],edges};
+      this.setState(s=>({routeDraftBusy:false,nodes:s.nodes.map(x=>x.id===id?{...x,routeMap}:x)}));
+    }catch(e){ this.setState({routeDraftBusy:false,routeDraftError:'Could not draft the route. Keep shaping it by hand, or try again.'}); }
+  };
   suggestStep=async(id)=>{ const n=this.state.nodes.find(x=>x.id===id); if(!n||this.state.aiBusy)return;
     this.setState({aiBusy:true});
     let t='';
     try{ const recent=(n.sessions||[]).slice(-4).map(x=>x.note).filter(Boolean).join('; ');
-      const res=await fetch('/api/suggest',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ label:n.label, goal:n.goal||'', recent }) });
-      if(res.ok){ const j=await res.json(); t=(j.step||'').trim().slice(0,120); }
+      const res=await fetch('/api/suggest',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ label:n.label, posture:n.posture, directionState:n.directionState, direction:n.direction||'', currentPosition:n.currentPosition||'', resumeCue:n.resumeCue||'', recent }) });
+      if(res.ok){ const j=await res.json(); t=(j.action||j.step||'').trim().slice(0,120); }
     }catch(e){}
-    if(!t) t=this.nextStep(n.label); // offline fallback: local heuristic step
+    if(!t) t=this.offlineStep(n).text;
     this.pushHistory();
     this.setState(s=>({ aiBusy:false, nodes:s.nodes.map(x=>x.id===id?{...x,steps:[...(x.steps||[]),{id:'ai'+Date.now(),text:t,done:false}]}:x) }));
   };
   mapSteps(n){ return (n.steps||[]).map(st=>({ id:st.id, text:st.text, done:st.done, box: st.done?'#7a9a6f':'#fbfbfa', check: st.done?'✓':'', col: st.done?'#a4abae':'#2b3034', deco: st.done?'line-through':'none', onToggle:()=>this.toggleStep(n.id,st.id), onRemove:()=>this.removeStep(n.id,st.id) })); }
-  firstStepText(n){ const st=(n&&n.steps||[]).find(x=>!x.done); return st?st.text:this.nextStep(n?n.label:''); }
+  firstStepInfo(n){
+    const st=(n&&n.steps||[]).find(x=>!x.done);
+    if(st)return {text:st.text,doneWhen:'You can mark this step complete',duration:null,source:'your step',routeNodeId:null};
+    if(n&&n.resumeCue)return {text:n.resumeCue,doneWhen:'You have moved past your saved resume point',duration:null,source:'resume point',routeNodeId:null};
+    return this.routeFrontierInfo(n);
+  }
+  offlineStep(n){
+    const label=n&&n.label?n.label:'this interest', direction=n&&n.direction?(' toward '+n.direction):'';
+    const posture=n&&n.posture||'explore';
+    if(posture==='build')return {text:'Make the smallest visible change in '+label+direction+'.',doneWhen:'One visible piece is different',duration:20,source:'offline suggestion'};
+    if(posture==='practice')return {text:'Practice one repeatable part of '+label+' for 15 minutes.',doneWhen:'You completed one deliberate repetition',duration:15,source:'offline suggestion'};
+    if(posture==='maintain')return {text:'Do the lightest version of '+label+' that keeps it alive.',doneWhen:'You completed a sustainable minimum',duration:15,source:'offline suggestion'};
+    return {text:'Try one small part of '+label+' and note what pulls you.',doneWhen:'You learned what you want to try next',duration:15,source:'offline suggestion'};
+  }
+  firstStepText(n){ const info=this.firstStepInfo(n)||this.offlineStep(n||{}); return info.text; }
   detailFor(n){
     if(!n) return null;
     const day=86400000, now=Date.now();
@@ -267,8 +470,11 @@ export default class App extends React.Component {
     const maxW=Math.max(0.1,...weeksRaw);
     const weeks=weeksRaw.map((v,i)=>({ h2:Math.round(v/maxW*46)+4, bg:i===7?'#7a9a6f':'rgba(122,154,111,.5)' }));
     const circ=2*Math.PI*54;
-    const prog=Math.max(0,Math.min(100, n.progress==null?Math.min(88,dayIdx.length*4):n.progress));
-    const ringDash=(circ*prog/100).toFixed(1)+' '+circ.toFixed(1);
+    const routeNodes=n.routeMap?(n.routeMap.nodes||[]).filter(x=>!['origin','destination'].includes(x.type)):[];
+    const progressKnown=routeNodes.length>0||typeof n.progress==='number';
+    const prog=routeNodes.length?Math.round(routeNodes.filter(x=>x.done).length/routeNodes.length*100):(typeof n.progress==='number'?Math.max(0,Math.min(100,n.progress)):0);
+    const ringDash=progressKnown?(circ*prog/100).toFixed(1)+' '+circ.toFixed(1):'0 '+circ.toFixed(1);
+    const trajectory=n.directionState==='open'?'open road':(sess[0]&&sess[0].ts>now-7*day?'moving':(n.currentPosition?'forming':'quiet'));
     const weekAvg=Array(8).fill(0), weekCnt=Array(8).fill(0);
     sess.forEach(x=>{ const wk=Math.floor((now-x.ts)/(7*day)); if(wk>=0&&wk<8){ weekAvg[7-wk]+=(x.dur||0); weekCnt[7-wk]++; } });
     const avgLen=weekAvg.map((t,i)=> weekCnt[i]? t/weekCnt[i]:0);
@@ -281,16 +487,16 @@ export default class App extends React.Component {
     const journal=sess.slice(0,6).map(x=>({ ts:x.ts, note:x.note||'Session', dur:(x.dur||0)+' min', date:rel(x.ts), mood:moodTxt[x.mood]||'', dot:moodDot[x.mood]||'#b6bec1', onRemove:()=>this.removeSession(n.id,x.ts) }));
     const steps=this.mapSteps(n);
     return { id:n.id, label:n.label, color:this.groupColor(n.cluster), groupLabel:this.groupLabel(n.cluster),
-      goal:n.goal||'add a high-level goal for this interest', progress:prog, progressTxt:Math.round(prog)+'%', ringDash,
+      goal:n.directionState==='open'?(n.direction||'Open-ended — no finish line required'):(n.direction||'Direction still unclear'), directionState:n.directionState, progress:prog, progressKnown, progressTxt:progressKnown?Math.round(prog)+'%':trajectory, progressCaption:progressKnown?'through route':'trajectory', ringDash,
       streak, longest, thisWeek, cadence:n.cadence||4, weekTxt:(thisWeek)+' / '+(n.cadence||4)+' sessions this week',
       weeks, sparkPts:pts.join(' '), sparkFill:'0,70 '+pts.join(' ')+' 560,70', momentum,
       journal, empty:sess.length===0,
-      steps, noSteps:!(n.steps&&n.steps.length), onAddStep:()=>this.addStep(n.id), onStepKey:(e)=>{ if(e.key==='Enter') this.addStep(n.id); }, onSuggest:()=>this.suggestStep(n.id) };
+      steps, noSteps:!(n.steps&&n.steps.length), onAddStep:()=>this.addStep(n.id), onStepKey:(e)=>{ if(e.key==='Enter') this.addStep(n.id); }, onSuggest:()=>this.suggestStep(n.id), onOpenRoute:()=>this.openRouteMap(n.id) };
   }
-  openExpanded=(id)=>this.setState({ expandedId:id, selectedId:null, selectedIds:[], logOpen:false });
-  closeExpanded=()=>this.setState({ expandedId:null, logOpen:false });
-  collapseDrawer=()=>this.setState(s=>({ expandedId:null, selectedId:s.expandedId }));
-  expandCurrent=()=>this.setState(s=>({ expandedId:s.selectedId, selectedId:null }));
+  openExpanded=(id)=>{ this.setState({ expandedId:id, selectedId:null, selectedIds:[], logOpen:false }); this.go(this.interestPath(id,'details')); };
+  closeExpanded=()=>{ this.setState({ expandedId:null, logOpen:false }); this.go('/canvas'); };
+  collapseDrawer=()=>{ const id=this.state.expandedId; this.setState({ expandedId:null, selectedId:id, selectedIds:id?[id]:[] }); this.go(id?this.interestPath(id):'/canvas'); };
+  expandCurrent=()=>{ const id=this.state.selectedId; if(!id)return; this.setState({ expandedId:id, selectedId:null, selectedIds:[] }); this.go(this.interestPath(id,'details')); };
   logToday=()=>{ const tid=this.state.expandedId||this.state.selectedId; if(!tid)return; this.pushHistory(); const now=Date.now(); this.setState(s=>({ nodes:s.nodes.map(n=>n.id===tid?{...n,lastTouched:now,sessions:[...(n.sessions||[]),{ts:now,dur:25,note:'Quick check-in',mood:'ok'}]}:n) })); };
   openLog=()=>this.setState({ logOpen:true, logDur:25, logNote:'', logMood:'ok' });
   closeLog=()=>this.setState({ logOpen:false });
@@ -301,7 +507,7 @@ export default class App extends React.Component {
   startPomo=()=>{ if(this._pomo)return; this.setState(s=>({pomoRunning:true, pomoSec:s.pomoSec||1500})); this._pomo=setInterval(()=>{ this.setState(s=>{ const t=(s.pomoSec||0)-1; if(t<=0){ clearInterval(this._pomo); this._pomo=null; return {pomoSec:0,pomoRunning:false}; } return {pomoSec:t}; }); },1000); };
   pausePomo=()=>{ if(this._pomo){clearInterval(this._pomo);this._pomo=null;} this.setState({pomoRunning:false}); };
   resetPomo=()=>{ if(this._pomo){clearInterval(this._pomo);this._pomo=null;} this.setState({pomoSec:1500,pomoRunning:false}); };
-  toggleConnect = ()=> this.setState(s=>({ connectMode:!s.connectMode, pendingConnect:null, selectedId:null }));
+  toggleConnect = ()=>{ this.setState(s=>({ connectMode:!s.connectMode, pendingConnect:null, selectedId:null, selectedIds:[] })); this.go('/canvas'); };
   handleConnectClick = (id)=> this.setState(s=>{
     if (s.pendingConnect==null) return { pendingConnect:id };
     if (s.pendingConnect===id) return { pendingConnect:null };
@@ -369,7 +575,7 @@ export default class App extends React.Component {
   onGroupNameKey = (e) => { if(e.key==='Enter'||e.key==='Escape') this.setState({ editingGroup:null }); };
   removeGroup = (key) => { this.pushHistory(); return this.setState(s=>{ const ef={...s.emptyFrames}; delete ef[key]; const lo={...s.labelOverrides}; delete lo[key]; return { customGroups:s.customGroups.filter(g=>g.key!==key), emptyFrames:ef, labelOverrides:lo, nodes:s.nodes.map(n=>n.cluster===key?{...n,cluster:'other'}:n), editingGroup:s.editingGroup===key?null:s.editingGroup }; }); };
   classify(n){ const t=(((n&&n.label)||'')+' '+((n&&n.meta)||'')).toLowerCase(); for(const th of this.themes){ if(th.kw.some(k=>t.includes(k))) return th.key; } return 'other'; }
-  addThoughtCenter = () => { const r=this.canvasEl && this.canvasEl.getBoundingClientRect(); const z=this.state.zoom; const x=((r? r.width/2:420)-this.state.panX)/z-95, y=((r? r.height/2:220)-this.state.panY)/z-30; this.setState({ adding:true, addX:x, addY:y, newLabel:'', tool:'select', selectedId:null }); };
+  addThoughtCenter = () => { const r=this.canvasEl && this.canvasEl.getBoundingClientRect(); const z=this.state.zoom; const x=((r? r.width/2:420)-this.state.panX)/z-95, y=((r? r.height/2:220)-this.state.panY)/z-30; this.setState({ adding:true, addX:x, addY:y, newLabel:'', tool:'select', selectedId:null, selectedIds:[] }); this.go('/canvas'); };
   autoGroup = () => {
     this.pushHistory();
     const r=this.canvasEl && this.canvasEl.getBoundingClientRect();
@@ -389,7 +595,8 @@ export default class App extends React.Component {
       const ids=groups[k]; const x=baseX+gi*(colW2+colGap);
       ids.forEach((id,j) => { pos[id]={ x:Math.round(x), y:Math.round(vStart+j*112), cluster:k }; });
     });
-    this.setState(s => ({ nodes:s.nodes.map(n => pos[n.id] ? { ...n, ...pos[n.id] } : { ...n, cluster:this.classify(n) }), selectedId:null }));
+    this.setState(s => ({ nodes:s.nodes.map(n => pos[n.id] ? { ...n, ...pos[n.id] } : { ...n, cluster:this.classify(n) }), selectedId:null, selectedIds:[] }));
+    this.go('/canvas');
   };
 
   setCanvas = (el) => {
@@ -442,7 +649,7 @@ export default class App extends React.Component {
     if (e.target !== this.canvasEl && e.target !== this.viewportEl) return;
     if (this.state.connectMode) { this.setState({ pendingConnect:null }); return; }
     if (this.state.tool !== 'select') return;
-    if (this.state.selectedId || (this.state.selectedIds&&this.state.selectedIds.length)) { this.setState({ selectedId:null, selectedIds:[] }); return; }
+    if (this.state.selectedId || (this.state.selectedIds&&this.state.selectedIds.length)) { this.closePopover(); return; }
     const r = this.canvasEl.getBoundingClientRect();
     this.setState({ adding:true, addX: (e.clientX - r.left - this.state.panX)/this.state.zoom - 12, addY: (e.clientY - r.top - this.state.panY)/this.state.zoom - 12, newLabel:'', selectedId:null });
   };
@@ -456,7 +663,7 @@ export default class App extends React.Component {
     if (!t) { this.setState({ adding:false, newLabel:'' }); return; }
     this.pushHistory();
     const id = 'u'+Date.now();
-    const node = { id, label:t, cluster:this.classify({label:t}), meta:'new thought', energy:2, priority:this.state.newPriority||2, x:this.state.addX, y:this.state.addY };
+    const node = this.normalizeNode({ id, label:t, cluster:this.classify({label:t}), meta:'new thought', energy:2, priority:this.state.newPriority||2, x:this.state.addX, y:this.state.addY });
     this.setState(s => ({ nodes:[...s.nodes, node], adding:false, newLabel:'' }));
   };
 
@@ -483,7 +690,7 @@ export default class App extends React.Component {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
-      if (!moved) { this.setState({ selectedId: id, selectedIds:[id], adding:false }); return; }
+      if (!moved) { this.openInterest(id); return; }
       const nd = this.state.nodes.find(x=>x.id===id);
       const ncx = nd.x + this.NW/2, ncy = nd.y + this.NHc;
       let target = null;
@@ -536,7 +743,7 @@ export default class App extends React.Component {
     const items = this.state.dumpText.split(/[\n,]+/).map(t=>t.trim()).filter(Boolean);
     if (!items.length) { this.setState({ dumpOpen:false }); return; }
     this.pushHistory();
-    const news = items.map((t,i)=>({
+    const news = items.map((t,i)=>this.normalizeNode({
       id:'d'+Date.now()+i, label:t, cluster:this.classify({label:t}), meta:'new thought', energy:2, priority:2,
       x: 300 + (i%4)*210 + (Math.random()*24-12),
       y: 120 + Math.floor(i/4)*130 + (Math.random()*24-12),
@@ -545,9 +752,9 @@ export default class App extends React.Component {
   };
 
   // ---- decide ----
-  openDecide = () => this.setState({ phase:'menu', excluded:[] });
-  closeDecide = () => this.setState({ phase:null });
-  startFilter = () => this.setState({ phase:'filter' });
+  openDecide = () => { this.setState({ phase:'menu', excluded:[] }); this.go('/canvas/decide'); };
+  closeDecide = () => { this.setState({ phase:null }); this.go('/canvas'); };
+  startFilter = () => { this.setState({ phase:'filter' }); this.go('/canvas/decide/filter'); };
   daysSince = (n) => (n && n.lastTouched) ? Math.floor((Date.now()-n.lastTouched)/86400000) : null;
   neglectFactor = (n) => { const d = (n && n.lastTouched) ? (Date.now()-n.lastTouched)/86400000 : 21; return 1 + Math.min(d,30)/12; };
   comboText(a,b){
@@ -582,8 +789,8 @@ export default class App extends React.Component {
   startShuffle = () => {
     if (this._spin) clearInterval(this._spin);
     const ex = this.state.excluded || [];
-    let pool = this.state.nodes.filter(n => !ex.includes(n.id));
-    if (!pool.length) pool = this.state.nodes.slice();
+    let pool = this.state.nodes.filter(n => !ex.includes(n.id) && !['resting','harvested','released'].includes(n.season));
+    if (!pool.length) pool = this.state.nodes.filter(n=>!['harvested','released'].includes(n.season));
     if (!pool.length) { this.setState({ phase:null }); return; }
     this.setState({ phase:null, resultOpen:false, spinning:true, chosenId:null, decideMode:'shuffle' });
     let ticks = 0;
@@ -600,16 +807,30 @@ export default class App extends React.Component {
     }, 90);
   };
   weightedPick = (nodes) => {
-    const pw = {1:0.6, 2:1, 3:1.7};
+    const pw = {1:0.65, 2:1, 3:1.55};
     const bag = [];
-    nodes.forEach(n => { const w = Math.max(1, Math.round((n.energy||1) * this.neglectFactor(n) * (pw[n.priority||2]||1))); for(let i=0;i<w;i++) bag.push(n); });
+    nodes.forEach(n => { const continuity=n.lastTouched&&this.daysSince(n)<=2?1.25:1; const warm=n.season==='warm'?0.75:1; const w = Math.max(1, Math.round(this.neglectFactor(n) * (pw[n.calling||n.priority||2]||1) * continuity * warm)); for(let i=0;i<w;i++) bag.push(n); });
     return bag[Math.floor(Math.random()*bag.length)] || nodes[0];
   };
   landOn = (node, reason) => {
     const combo=this.comboFor(node);
+    const info=this.firstStepInfo(node), req=++this._decisionRequest;
     this.setState({ spinning:false, spinId:null, chosenId:node.id, resultOpen:true,
-      chosenReason: reason, chosenStep: this.firstStepText(node), chosenWhy: this.whyNow(node),
+      chosenReason: reason, chosenStep:info?info.text:'finding a meaningful next move…',chosenDoneWhen:info?info.doneWhen:'',chosenDuration:info?info.duration:null,chosenStepSource:info?info.source:'',chosenStepBusy:!info,chosenRouteNodeId:info?info.routeNodeId:null,chosenWhy: this.whyNow(node),
       chosenCombo: combo?combo.text:'', chosenComboPartner: combo?combo.partner:'' });
+    this.go(this.decisionPath(node.id));
+    if(!info)this.generateDecisionStep(node,req);
+  };
+  generateDecisionStep=async(node,requestId)=>{
+    let info=null;
+    try{
+      const recent=(node.sessions||[]).slice(-4).map(x=>x.note).filter(Boolean).join('; ');
+      const res=await fetch('/api/suggest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label:node.label,posture:node.posture,directionState:node.directionState,direction:node.direction||'',currentPosition:node.currentPosition||'',resumeCue:node.resumeCue||'',recent,time:this.state.filters.time,energy:this.state.filters.energy,mood:this.state.filters.mood})});
+      if(res.ok){const j=await res.json();if(j.action||j.step)info={text:String(j.action||j.step).slice(0,140),doneWhen:String(j.doneWhen||'You completed the proposed action').slice(0,160),duration:j.durationMinutes||null,source:'suggested',routeNodeId:null};}
+    }catch(e){}
+    if(!info)info=this.offlineStep(node);
+    if(requestId!==this._decisionRequest||this.state.chosenId!==node.id)return;
+    this.setState({chosenStep:info.text,chosenDoneWhen:info.doneWhen,chosenDuration:info.duration,chosenStepSource:info.source,chosenStepBusy:false,chosenRouteNodeId:null});
   };
   notToday = () => {
     const id = this.state.chosenId;
@@ -619,13 +840,14 @@ export default class App extends React.Component {
   };
   startThis = () => {
     const id = this.state.chosenId;
-    if(!id){ this.setState({resultOpen:false}); return; }
+    if(!id||this.state.chosenStepBusy){ if(!id)this.setState({resultOpen:false}); return; }
     const e = this.state.filters && this.state.filters.energy;
-    const mins = e==='low'?18 : e==='high'?48 : 30;
+    const mins = this.state.chosenDuration || (e==='low'?18 : e==='high'?48 : 30);
     this.setState(s => ({ nodes: s.nodes.map(n => n.id===id ? { ...n, picks:(n.picks||0)+1, lastPicked:Date.now() } : n), resultOpen:false }));
-    this.startFocus(id, mins);
+    this.go('/canvas');
+    this.startFocus(id, mins, this.state.chosenStep, this.state.chosenRouteNodeId);
   };
-  startFocus=(nodeId,mins)=>{ if(this._focus)clearInterval(this._focus); const total=mins*60; this.setState({ focusOpen:true, focusMinimized:false, focusDone:false, focusNodeId:nodeId, focusTotal:total, focusLeft:total, focusRunning:true }); this._focus=setInterval(()=>this._focusTick(),1000); };
+  startFocus=(nodeId,mins,stepText,routeNodeId)=>{ if(this._focus)clearInterval(this._focus); const total=mins*60; this.setState({ focusOpen:true, focusMinimized:false, focusDone:false, focusNodeId:nodeId, focusStepText:stepText||'', focusRouteNodeId:routeNodeId||null, focusTotal:total, focusLeft:total, focusRunning:true }); this._focus=setInterval(()=>this._focusTick(),1000); };
   _focusTick(){ this.setState(s=>{ if(!s.focusRunning) return {}; const l=(s.focusLeft||0)-1; if(l<=0){ clearInterval(this._focus); this._focus=null; setTimeout(()=>this.completeFocus(),0); return {focusLeft:0,focusRunning:false}; } return {focusLeft:l}; }); }
   pauseFocus=()=>this.setState({focusRunning:false});
   resumeFocus=()=>{ if(!this._focus){ this._focus=setInterval(()=>this._focusTick(),1000); } this.setState({focusRunning:true}); };
@@ -635,18 +857,18 @@ export default class App extends React.Component {
   minimizeFocus=()=>this.setState({focusMinimized:true});
   resumeFromPill=()=>this.setState({focusMinimized:false});
   _logFocus(dur,mood){ const id=this.state.focusNodeId; if(!id||dur<1)return; this.pushHistory(); const now=Date.now(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,lastTouched:now,sessions:[...(n.sessions||[]),{ts:now,dur,note:'Focus session',mood}]}:n)})); }
-  skipFocus=()=>{ const el=Math.max(1,Math.round(((this.state.focusTotal||0)-(this.state.focusLeft||0))/60)); this._logFocus(el,'ok'); this.closeFocus(); };
-  closeFocus=()=>{ if(this._focus){clearInterval(this._focus);this._focus=null;} this.setState({focusOpen:false,focusMinimized:false,focusRunning:false,focusDone:false}); };
-  completeFocus=()=>{ const dur=Math.round((this.state.focusTotal||0)/60); this._logFocus(dur,'up'); this.setState({focusRunning:false,focusDone:true}); setTimeout(()=>this.setState({focusOpen:false,focusMinimized:false,focusDone:false}),2800); };
-  closeResult = () => this.setState({ resultOpen:false });
+  skipFocus=()=>{ const el=Math.round(((this.state.focusTotal||0)-(this.state.focusLeft||0))/60); if(el>=1)this._logFocus(el,'ok'); this.closeFocus(); };
+  closeFocus=()=>{ if(this._focus){clearInterval(this._focus);this._focus=null;} this.setState({focusOpen:false,focusMinimized:false,focusRunning:false,focusDone:false,focusStepText:'',focusRouteNodeId:null}); };
+  completeFocus=()=>{ const dur=Math.round((this.state.focusTotal||0)/60), routeNodeId=this.state.focusRouteNodeId, interestId=this.state.focusNodeId; this._logFocus(dur,'up'); this.setState(s=>({focusRunning:false,focusDone:true,nodes:routeNodeId?s.nodes.map(n=>n.id===interestId&&n.routeMap?{...n,routeMap:{...n.routeMap,nodes:n.routeMap.nodes.map(r=>r.id===routeNodeId?{...r,done:true}:r)}}:n):s.nodes})); setTimeout(()=>this.setState({focusOpen:false,focusMinimized:false,focusDone:false,focusRouteNodeId:null}),2800); };
+  closeResult = () => { this.setState({ resultOpen:false }); this.go('/canvas'); };
 
   // filter selections
   pickFilter = (key, val) => this.setState(s => ({ filters:{ ...s.filters, [key]: val } }));
   runFilter = () => {
     const { time, energy, mood } = this.state.filters;
     const ex = this.state.excluded || [];
-    let pool = this.state.nodes.filter(n => !ex.includes(n.id));
-    if (!pool.length) pool = this.state.nodes.slice();
+    let pool = this.state.nodes.filter(n => !ex.includes(n.id) && !['resting','harvested','released'].includes(n.season));
+    if (!pool.length) pool = this.state.nodes.filter(n=>!['harvested','released'].includes(n.season));
     const moodCluster = { learn:'learn', make:'craft', rest:'body' };
     if (mood && moodCluster[mood]) {
       const m = pool.filter(n => n.cluster === moodCluster[mood]);
@@ -664,27 +886,21 @@ export default class App extends React.Component {
     this.setState({ phase:null });
   };
 
-  nextStep = (label) => {
-    const l = (label||'').toLowerCase();
-    const map = [
-      [/japan|語|language/, 'Do just the due Anki cards — 15 minutes, nothing more.'],
-      [/devit|game|build|repo/, 'Open the repo and ship one tiny commit — a bugfix or a TODO.'],
-      [/cook|recipe|meal/, 'Pick one recipe and do only the mise en place tonight.'],
-      [/health|walk|gym|body|fitness/, 'A 20-minute walk or a short mobility set. Nothing heroic.'],
-      [/dsa|algorithm|leet/, 'Solve one easy problem with a 25-minute timer on.'],
-      [/system design|architecture/, 'Read one section and sketch the diagram from memory.'],
-      [/read|book/, 'Read 10 pages of your current book. Phone in another room.'],
-      [/writ|content|blog|essay/, 'Freewrite 200 words on today\u2019s idea — no editing.'],
-    ];
-    for (const [re, step] of map) if (re.test(l)) return step;
-    return 'Give it one focused 25-minute block. Start tiny — momentum beats mood.';
-  };
-
-  componentDidUpdate() {
+  componentDidUpdate(prevProps) {
+    if(prevProps.cloudRevision!==this.props.cloudRevision&&this.props.cloudDocument){
+      this._cloudRevision=this.props.cloudRevision;
+      this.applyCloudDocument(this.props.cloudDocument);
+      return;
+    }
+    if(prevProps.pathname!==this.props.pathname)this.applyRoute(this.props.pathname);
     const s = this.state;
     try { const j = JSON.stringify(s.nodes); if (j !== this._saved) { localStorage.setItem('skein.nodes.v1', j); this._saved = j; } } catch(e){}
     try { const je = JSON.stringify(s.edges); if (je !== this._savedE) { localStorage.setItem('skein.edges.v1', je); this._savedE = je; } } catch(e){}
     try { const jg = JSON.stringify({customGroups:s.customGroups, emptyFrames:s.emptyFrames, labelOverrides:s.labelOverrides}); if (jg !== this._savedG) { localStorage.setItem('skein.groups.v1', jg); this._savedG = jg; } } catch(e){}
+    if(this.props.onDocumentChange){
+      const document=canvasDocumentFromState(s), snapshot=JSON.stringify(document);
+      if(snapshot!==this._syncSnapshot){this._syncSnapshot=snapshot;this.props.onDocumentChange(document);}
+    }
   }
 
   // ---- derived render values ----
@@ -705,10 +921,12 @@ export default class App extends React.Component {
       else if (chosen) shadow = '2px 3px 0 rgba(58,64,69,.14), 0 0 0 6px rgba(122,154,111,.20)';
       else if (selected || pending) shadow = '2px 3px 0 rgba(58,64,69,.14), 0 0 0 4px rgba(122,154,111,.30)';
       const gcolor = this.groupColor(n.cluster);
+      const directionBadge=n.directionState==='directed'?{icon:'↗',label:'directed'}:n.directionState==='open'?{icon:'∞',label:'open-ended'}:{icon:'?',label:'unclear'};
       return {
-        ...n, chosen, color:gcolor,
+        ...n, chosen, color:gcolor, directionBadge, routeCount:n.routeMap?(n.routeMap.nodes||[]).filter(x=>!['origin','destination'].includes(x.type)).length:0,
         shadow,
         anim: chosen && !s.spinning ? 'callPulse 3s ease-in-out infinite' : 'none',
+        opacity:n.season==='resting'?.62:1,
         onDown: (e)=>this.startDrag(e, n.id),
         onExpand: ()=>this.openExpanded(n.id),
         dots: [1,2,3].map(k => ({ bg: k <= (n.energy||0) ? gcolor : '#cbd0d2' })),
@@ -763,29 +981,50 @@ export default class App extends React.Component {
     const clusterKeys = [ ...this.themes.map(t=>[t.key, this.groupLabel(t.key)]), ...s.customGroups.map(g=>[g.key, this.groupLabel(g.key)]) ];
     let selData = null;
     if (sel) {
+      const postureLabels={explore:'explore',practice:'practice',build:'build',maintain:'maintain'};
+      const stateLabels={directed:'↗ directed',open:'∞ open-ended',unclear:'? unclear'};
+      const seasonLabels={active:'active',warm:'warm',resting:'resting'};
       selData = {
-        label: sel.label, meta: sel.meta || '', note: sel.note || '',
+        id:sel.id,label: sel.label, meta: sel.meta || '', note: sel.note || '', posture:sel.posture,directionState:sel.directionState,direction:sel.direction||'',currentPosition:sel.currentPosition||'',season:sel.season,
         dots: [1,2,3].map(k => ({ bg: k <= (sel.energy||0) ? A : '#cbd0d2', onClick:()=>this.setEnergy(sel.id,k) })),
         clusterChips: clusterKeys.map(([k,lab]) => { const on = sel.cluster===k; const col=this.groupColor(k); return { label:lab, onSelect:()=>this.setCluster(sel.id,k), bg:on?col:'#fbfbfa', color:on?'#fff':'#2b3034', border:on?col:'#b7bec1' }; }),
-        priorityChips: [[1,'low'],[2,'medium'],[3,'high']].map(([p,lab]) => { const on=(sel.priority||2)===p; return { label:lab, onSelect:()=>this.setPriority(sel.id,p), bg:on?'#7a9a6f':'#fbfbfa', color:on?'#fff':'#2b3034', border:on?'#7a9a6f':'#b7bec1' }; }),
+        postureChips:Object.keys(postureLabels).map(k=>{const on=sel.posture===k;return{label:postureLabels[k],onSelect:()=>this.setPosture(sel.id,k),bg:on?A:'#fbfbfa',color:on?'#fff':'#2b3034',border:on?A:'#b7bec1'};}),
+        directionStateChips:Object.keys(stateLabels).map(k=>{const on=sel.directionState===k;return{label:stateLabels[k],onSelect:()=>this.setDirectionState(sel.id,k),bg:on?(k==='open'?'#b0975a':A):'#fbfbfa',color:on?'#fff':'#2b3034',border:on?(k==='open'?'#b0975a':A):'#b7bec1'};}),
+        seasonChips:Object.keys(seasonLabels).map(k=>{const on=sel.season===k;return{label:seasonLabels[k],onSelect:()=>this.setSeason(sel.id,k),bg:on?(k==='resting'?'#8a9196':A):'#fbfbfa',color:on?'#fff':'#2b3034',border:on?(k==='resting'?'#8a9196':A):'#b7bec1'};}),
+        directionPrompt:sel.directionState==='open'?'what do you want this to keep giving you?':sel.posture==='explore'?'what would satisfy your curiosity for now?':sel.posture==='practice'?'what would you like to be able to do?':sel.posture==='build'?'what do you want to exist?':'what rhythm or condition would feel like enough?',
         step: this.firstStepText(sel),
         steps: this.mapSteps(sel), noSteps: !(sel.steps&&sel.steps.length),
         onAddStep: ()=>this.addStep(sel.id), onStepKey: (e)=>{ if(e.key==='Enter') this.addStep(sel.id); }, onSuggest: ()=>this.suggestStep(sel.id),
+        onOpenRoute:()=>this.openRouteMap(sel.id),routeCount:sel.routeMap?(sel.routeMap.nodes||[]).filter(x=>!['origin','destination'].includes(x.type)).length:0,
         touched: sel.lastTouched ? this.since(sel.lastTouched) : 'not yet',
       };
     }
+    const routeInterest=byId[s.routeMapOpenId];
+    let route=null;
+    if(routeInterest&&routeInterest.routeMap){
+      const map=routeInterest.routeMap;
+      const blockingRelationships=new Set(['requires','unlocks','produces']);
+      const routeNodes=map.nodes.map(n=>{
+        const blockedBy=(map.edges||[]).filter(e=>e.to===n.id&&blockingRelationships.has(e.relationship||'unlocks')).map(e=>map.nodes.find(x=>x.id===e.from)).filter(x=>x&&!x.done).map(x=>x.label);
+        return {...n,blockedBy,reachable:this.routeReachable(map,n),onToggle:()=>this.toggleRouteNode(n.id),onAdd:()=>this.beginRouteAdd(n.id),onMoveStart:this.beginRouteNodeMove,onMove:(x,y)=>this.moveRouteNode(n.id,x,y)};
+      });
+      const parent=map.nodes.find(n=>n.id===s.routeAddParent);
+      route={interest:routeInterest,map:{...map,nodes:routeNodes},busy:s.routeDraftBusy,error:s.routeDraftError,onClose:this.closeRouteMap,onGenerate:this.generateRouteDraft,onAccept:this.acceptRouteDraft,onAutoArrange:this.autoArrangeRoute,onBeginAdd:this.beginRouteAdd,addOpen:!!s.routeAddParent,addParentLabel:parent?parent.label:'',addLabel:s.routeAddLabel,onAddLabel:this.onRouteAddLabel,addType:s.routeAddType,typeChips:['task','milestone','capability','resource','experiment','decision'].map(type=>({type,label:type,onSelect:()=>this.setRouteAddType(type),active:s.routeAddType===type})),onAddNode:this.addRouteNode,onCancelAdd:this.cancelRouteAdd};
+    }
     const chosen = byId[s.chosenId];
-    const touchedNodes = s.nodes.filter(n=>n.lastTouched);
+    const touchedNodes = s.nodes.filter(n=>n.lastTouched&&!['resting','harvested','released'].includes(n.season));
     let hasNeglect=false, neglectNote='';
     if (touchedNodes.length) {
-      const nn = s.nodes.slice().sort((a,b)=>(a.lastTouched||0)-(b.lastTouched||0))[0];
-      const d = this.daysSince(nn);
-      if (d === null) { hasNeglect=true; neglectNote = 'You\u2019ve been active elsewhere but haven\u2019t started \u201c' + nn.label + '\u201d yet.'; }
-      else if (d >= 7) { hasNeglect=true; neglectNote = 'Heads up: \u201c' + nn.label + '\u201d hasn\u2019t been touched in ' + d + ' days.'; }
+      const nn = s.nodes.filter(n=>!['resting','harvested','released'].includes(n.season)).sort((a,b)=>(a.lastTouched||0)-(b.lastTouched||0))[0];
+      if(nn){
+        const d = this.daysSince(nn);
+        if (d === null) { hasNeglect=true; neglectNote = '\u201c' + nn.label + '\u201d is still an open thread, if it feels alive today.'; }
+        else if (d >= 7) { hasNeglect=true; neglectNote = '\u201c' + nn.label + '\u201d has been quiet for ' + d + ' days. Resume it only if it still calls.'; }
+      }
     }
     return {
       selOpen: !!sel, sel: selData,
-      onRenameInput:this.onRenameInput, onMetaInput:this.onMetaInput, onNoteInput:this.onNoteInput,
+      onRenameInput:this.onRenameInput, onMetaInput:this.onMetaInput, onNoteInput:this.onNoteInput,onDirectionInput:this.onDirectionInput,onCurrentPositionInput:this.onCurrentPositionInput,
       markTouched:this.markTouched, deleteSelected:this.deleteSelected, closeDrawer:this.closePopover,
       nodes, edges, clusterBoxes, filterGroups,
       isEmpty: s.nodes.length === 0,
@@ -812,7 +1051,7 @@ export default class App extends React.Component {
       startShuffle:this.startShuffle, runFilter:this.runFilter,
       spinning: s.spinning,
       resultOpen: s.resultOpen,
-      chosenLabel: chosen ? chosen.label : '', chosenReason: s.chosenReason, chosenStep: s.chosenStep, chosenWhy: s.chosenWhy,
+      chosenLabel: chosen ? chosen.label : '', chosenReason: s.chosenReason, chosenStep: s.chosenStep, chosenDoneWhen:s.chosenDoneWhen,chosenDuration:s.chosenDuration,chosenStepSource:s.chosenStepSource,chosenStepBusy:s.chosenStepBusy, chosenWhy: s.chosenWhy,
       hasCombo: !!s.chosenCombo, chosenCombo: s.chosenCombo, chosenComboPartner: s.chosenComboPartner,
       notToday:this.notToday, startThis:this.startThis, closeResult:this.closeResult,
       hasNeglect, neglectNote,
@@ -829,7 +1068,7 @@ export default class App extends React.Component {
       focusTimeTxt: Math.floor((s.focusLeft||0)/60)+':'+String((s.focusLeft||0)%60).padStart(2,'0'),
       focusRingDash: (((s.focusLeft||0)/(s.focusTotal||1))*(2*Math.PI*120)).toFixed(1)+' '+(2*Math.PI*120).toFixed(1),
       focusColor: byId[s.focusNodeId]?this.groupColor(byId[s.focusNodeId].cluster):'#7a9a6f',
-      focusLabel: byId[s.focusNodeId]?byId[s.focusNodeId].label:'', focusStep: byId[s.focusNodeId]?this.firstStepText(byId[s.focusNodeId]):'',
+      focusLabel: byId[s.focusNodeId]?byId[s.focusNodeId].label:'', focusStep:s.focusStepText||(byId[s.focusNodeId]?this.firstStepText(byId[s.focusNodeId]):''),
       focusEnergyTxt: (s.filters&&s.filters.energy)? ({low:'matched to low energy',med:'matched to medium energy',high:'matched to high energy'}[s.filters.energy]||'focus') : 'a 30-minute focus',
       focusPauseTxt: s.focusRunning?'pause':'resume',
       togglePauseFocus:this.togglePauseFocus, extendFocus:this.extendFocus, skipFocus:this.skipFocus, minimizeFocus:this.minimizeFocus, resumeFromPill:this.resumeFromPill,
@@ -844,6 +1083,7 @@ export default class App extends React.Component {
       onbInput:this.onbInput, onbKey:this.onbKey, weave:this.weave, loadExample:this.loadExample, toggleMic:this.toggleMic,
       micBg:s.listening?'#7a9a6f':'#f7f8f8', micStroke:s.listening?'#ffffff':'#3a4045', micAnim:s.listening?'micPulse 1.4s ease-in-out infinite':'none', micNote:s.weaving?'untangling your thoughts\u2026':(s.micUnsupported?'voice input needs Chrome or Edge \u2014 just type instead':(s.listening?'listening\u2026 speak your tangle of thoughts':'')),
       onbChips:this.examples.map(ex=>({short:ex.short,onClick:()=>this.fillExample(ex.full)})),
+      route,
     };
   }
 
@@ -910,18 +1150,20 @@ export default class App extends React.Component {
 
             {/* nodes */}
             {v.nodes.map(n => (
-              <div key={n.id} onPointerDown={n.onDown} onDoubleClick={n.onExpand} className="absolute z-[5] flex h-24 w-[154px] cursor-grab touch-none flex-col rounded-[11px_8px_12px_7px] border-[1.6px] border-ink-line bg-paper-2 px-[13px] py-[11px]" style={{ left: n.x, top: n.y, boxShadow: n.shadow, animation: n.anim }}>
+              <div key={n.id} onPointerDown={n.onDown} onDoubleClick={n.onExpand} className="absolute z-[5] flex h-24 w-[154px] cursor-grab touch-none flex-col rounded-[11px_8px_12px_7px] border-[1.6px] border-ink-line bg-paper-2 px-[13px] py-[11px]" style={{ left: n.x, top: n.y, boxShadow: n.shadow, animation: n.anim, opacity:n.opacity }}>
                 {n.chosen && (
                   <div className="absolute -top-[11px] -right-2 rounded-[9px_7px_9px_6px] bg-accent px-2 py-0.5 text-[10px] font-semibold text-white shadow-[1px_2px_0_rgba(58,64,69,.15)]">start here</div>
                 )}
                 <div className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full border-[1.4px] border-[rgba(58,64,69,.3)]" style={{ background: n.color }}></div>
-                <div className="text-[17px] leading-[1.15] font-semibold text-ink">{n.label}</div>
-                <div className="mt-0.5 text-[11px] text-[#90999d]">{n.meta}</div>
-                <div className="mt-auto flex items-center gap-1">
-                  <span className="mr-0.5 text-[10px] text-[#90999d]">energy</span>
-                  {n.dots.map((d, i) => (
-                    <span key={i} className="h-1.5 w-1.5 rounded-full" style={{ background: d.bg }}></span>
-                  ))}
+                <div title={n.label} className="line-clamp-2 max-h-10 overflow-hidden pr-4 text-[17px] leading-[1.15] font-semibold text-ink">{n.label}</div>
+                <div className="mt-0.5 truncate pr-1 text-[11px] text-[#90999d]">{n.meta}</div>
+                <div className="mt-auto flex min-w-0 items-center justify-between gap-1.5">
+                  <span className="flex shrink-0 items-center gap-1 text-[9px] font-semibold text-muted"><span>{n.directionBadge.icon}</span><span>{n.directionBadge.label}</span></span>
+                  <span className="flex min-w-0 items-center gap-1">
+                    <span className={n.routeCount>0?'sr-only':'mr-0.5 text-[10px] text-[#90999d]'}>energy</span>
+                    {n.dots.map((d, i) => (<span key={i} className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: d.bg }}></span>))}
+                    {n.routeCount>0&&<span className="ml-0.5 whitespace-nowrap text-[9px] font-semibold text-accent-deep">map · {n.routeCount}</span>}
+                  </span>
                 </div>
               </div>
             ))}
@@ -961,6 +1203,7 @@ export default class App extends React.Component {
         <DecideFlow v={v}/>
         <BrainDump v={v}/>
         <DetailDrawer v={v}/>
+        <RouteMap v={v}/>
 
         {/* wordmark */}
         <div className="pointer-events-none fixed top-5 left-6 z-20 flex items-baseline gap-2.5">

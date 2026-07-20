@@ -22,11 +22,11 @@ export default function ExpandedDetail({ v }) {
             <div className="relative h-[132px] w-[132px] flex-none">
               <svg width="132" height="132" viewBox="0 0 132 132">
                 <circle cx="66" cy="66" r="54" fill="none" stroke="#e3e8e9" strokeWidth="13"></circle>
-                <circle cx="66" cy="66" r="54" fill="none" stroke={exp.color} strokeWidth="13" strokeLinecap="round" strokeDasharray={exp.ringDash} transform="rotate(-90 66 66)"></circle>
+                {exp.progressKnown&&<circle cx="66" cy="66" r="54" fill="none" stroke={exp.color} strokeWidth="13" strokeLinecap="round" strokeDasharray={exp.ringDash} transform="rotate(-90 66 66)"></circle>}
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <div className="font-hand text-[30px] leading-none font-bold text-ink">{exp.progressTxt}</div>
-                <div className="text-[10px] text-muted">to goal</div>
+                <div className="text-[10px] text-muted">{exp.progressCaption}</div>
               </div>
             </div>
             <div>
@@ -35,6 +35,7 @@ export default function ExpandedDetail({ v }) {
               <div className="mt-2.5 flex flex-wrap gap-2">
                 <span className="rounded-[9px] border-[1.4px] border-accent bg-[rgba(122,154,111,.14)] px-2.5 py-1 text-xs text-accent-deep">🔥 {exp.streak}-day streak</span>
                 <span className="rounded-[9px] border-[1.4px] border-[#cfd6d8] bg-paper-2 px-2.5 py-1 text-xs text-[#4c5257]">{exp.weekTxt}</span>
+                <button onClick={exp.onOpenRoute} className="cursor-pointer rounded-[9px] border-[1.4px] border-[#b0975a] bg-[rgba(176,151,90,.12)] px-2.5 py-1 text-xs font-semibold text-[#806b35]">open route map ↗</button>
               </div>
             </div>
           </div>

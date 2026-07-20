@@ -41,7 +41,7 @@ export default function FocusOverlay({ v }) {
               <button onClick={v.togglePauseFocus} className="flex cursor-pointer items-center gap-2 px-5 py-[11px] text-[15px] font-bold text-white bg-accent border-[1.6px] border-ink-line rounded-[12px_9px_12px_9px] shadow-[2px_3px_0_rgba(58,64,69,.18)]"><svg width="14" height="14" viewBox="0 0 16 16" fill="#fff"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg> {v.focusPauseTxt}</button>
               <button onClick={v.extendFocus} className="cursor-pointer px-4 py-[11px] text-sm font-semibold text-ink bg-paper-2 border-[1.6px] border-ink-line rounded-[9px_11px_8px_12px]">+5 min</button>
               <button onClick={v.skipFocus} className="cursor-pointer px-4 py-[11px] text-sm font-semibold text-ink bg-paper-2 border-[1.6px] border-ink-line rounded-[11px_9px_12px_9px]">skip & log</button>
-              <button onClick={v.minimizeFocus} className="cursor-pointer px-4 py-[11px] text-sm font-semibold text-muted-2 bg-paper-2 border-[1.5px] border-[#cbd0d2] rounded-[9px_11px_8px_12px]">exit to canvas</button>
+              <button onClick={v.minimizeFocus} className="cursor-pointer px-4 py-[11px] text-sm font-semibold text-muted-2 bg-paper-2 border-[1.5px] border-[#cbd0d2] rounded-[9px_11px_8px_12px]">keep running on canvas</button>
             </div>
 
             {v.focusDone && (

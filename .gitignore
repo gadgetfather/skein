@@ -4,4 +4,8 @@ dist
 *.local
 .next
 next-env.d.ts
-specs
+.vercel
+specs/*
+!specs/SPEC-living-directions.md
+!specs/SPEC-living-directions-implementation.md
+.env*
