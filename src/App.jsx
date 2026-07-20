@@ -53,7 +53,7 @@ export default class App extends React.Component {
     this.state = {
       nodes: initial,
       edges: firstRun ? [] : (Array.isArray(savedE) ? savedE : seedEdges.map(([a,b])=>({a,b}))),
-      showOnboarding: firstRun, onbFading:false, hIndex:Math.floor(Math.random()*5), hOpacity:1, inputVal:'', listening:false, weaving:false,
+      showOnboarding: firstRun, onbFading:false, hIndex:Math.floor(Math.random()*5), hOpacity:1, inputVal:'', listening:false, weaving:false, micUnsupported:false,
       customGroups: Array.isArray(savedG.customGroups)? savedG.customGroups : [],
       emptyFrames: savedG.emptyFrames || {},
       labelOverrides: savedG.labelOverrides || {},
@@ -62,7 +62,7 @@ export default class App extends React.Component {
       tool:'select', panX:0, panY:0, zoom:1,
       selectedId:null, selectedIds:[],
       expandedId:null, logOpen:false, logDur:25, logNote:'', logMood:'ok', pomoSec:1500, pomoRunning:false,
-      focusOpen:false, focusMinimized:false, focusNodeId:null, focusTotal:1800, focusLeft:1800, focusRunning:false, focusDone:false, ambient:false,
+      focusOpen:false, focusMinimized:false, focusNodeId:null, focusTotal:1800, focusLeft:1800, focusRunning:false, focusDone:false,
       stepDraft:'', aiBusy:false,
       adding:false, addX:0, addY:0, newLabel:'', newPriority:2,
       dumpOpen:false, dumpText:'',
@@ -77,7 +77,7 @@ export default class App extends React.Component {
   componentDidMount(){ this._onKey = (e)=>this.handleKey(e); window.addEventListener('keydown', this._onKey);
     this._ht = setInterval(()=>{ if(!this.state.showOnboarding) return; this.setState({hOpacity:0}); setTimeout(()=>this.setState(st=>({hIndex:(st.hIndex+1)%this.headlines.length, hOpacity:1})),420); }, 4200);
   }
-  componentWillUnmount(){ if(this._spin) clearInterval(this._spin); if(this._ht) clearInterval(this._ht); if(this._mic) clearTimeout(this._mic); if(this._pomo) clearInterval(this._pomo); if(this._focus) clearInterval(this._focus); if(this._onKey) window.removeEventListener('keydown', this._onKey); }
+  componentWillUnmount(){ if(this._spin) clearInterval(this._spin); if(this._ht) clearInterval(this._ht); if(this._micNote) clearTimeout(this._micNote); if(this._rec){ try{ this._rec.stop(); }catch(e){} } if(this._pomo) clearInterval(this._pomo); if(this._focus) clearInterval(this._focus); if(this._onKey) window.removeEventListener('keydown', this._onKey); }
   parseInterests(text){
     let t=(text||'').replace(/^\s*(i\s+want\s+to|i'd\s+like\s+to|i\s+wanna|help\s+me|i\s+need\s+to|i\s+keep\s+meaning\s+to)\s+/i,'');
     const parts=t.split(/\s*(?:,|;|\band\b|&|\+|\/|\n|\bplus\b)\s*/i).map(p=>p.trim()).filter(Boolean);
@@ -86,11 +86,26 @@ export default class App extends React.Component {
   onbInput=(e)=>this.setState({inputVal:e.target.value});
   onbKey=(e)=>{ if(e.key==='Enter') this.weave(); };
   fillExample=(full)=>this.setState({inputVal:full});
-  toggleMic=()=>{ const on=!this.state.listening; this.setState({listening:on}); if(this._mic)clearTimeout(this._mic); if(on)this._mic=setTimeout(()=>this.setState({listening:false}),4000); };
+  toggleMic=()=>{
+    if(this.state.listening){ this.stopMic(); return; }
+    const SR = typeof window!=='undefined' && (window.SpeechRecognition||window.webkitSpeechRecognition);
+    if(!SR){ // Chrome/Edge only; note and bail on browsers without the API
+      this.setState({micUnsupported:true}); if(this._micNote)clearTimeout(this._micNote);
+      this._micNote=setTimeout(()=>this.setState({micUnsupported:false}),3200); return; }
+    const rec=new SR(); rec.lang='en-US'; rec.interimResults=true; rec.continuous=false;
+    this._micBase=this.state.inputVal?this.state.inputVal.replace(/\s+$/,'')+' ':'';
+    rec.onresult=(e)=>{ let txt=''; for(let i=0;i<e.results.length;i++) txt+=e.results[i][0].transcript; this.setState({inputVal:this._micBase+txt}); };
+    rec.onerror=()=>this.stopMic();
+    rec.onend=()=>{ this._rec=null; this.setState({listening:false}); };
+    this._rec=rec;
+    try{ rec.start(); this.setState({listening:true, micUnsupported:false}); }catch(e){ this._rec=null; this.setState({listening:false}); }
+  };
+  stopMic=()=>{ if(this._rec){ try{ this._rec.stop(); }catch(e){} this._rec=null; } this.setState({listening:false}); };
   weave=async()=>{
     const raw=(this.state.inputVal||'').trim();
     if(!raw || this.state.weaving) return;
-    this.setState({weaving:true, listening:false});
+    this.stopMic();
+    this.setState({weaving:true});
     let woven=null;
     try{
       const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),30000);
@@ -606,7 +621,6 @@ export default class App extends React.Component {
   setFocusMins=(m)=>this.setState({focusTotal:m*60, focusLeft:m*60});
   minimizeFocus=()=>this.setState({focusMinimized:true});
   resumeFromPill=()=>this.setState({focusMinimized:false});
-  toggleAmbient=()=>this.setState(s=>({ambient:!s.ambient}));
   _logFocus(dur,mood){ const id=this.state.focusNodeId; if(!id||dur<1)return; this.pushHistory(); const now=Date.now(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,lastTouched:now,sessions:[...(n.sessions||[]),{ts:now,dur,note:'Focus session',mood}]}:n)})); }
   skipFocus=()=>{ const el=Math.max(1,Math.round(((this.state.focusTotal||0)-(this.state.focusLeft||0))/60)); this._logFocus(el,'ok'); this.closeFocus(); };
   closeFocus=()=>{ if(this._focus){clearInterval(this._focus);this._focus=null;} this.setState({focusOpen:false,focusMinimized:false,focusRunning:false,focusDone:false}); };
@@ -798,14 +812,14 @@ export default class App extends React.Component {
       logOpen:s.logOpen, logDur:s.logDur, logNote:s.logNote,
       logMoodUp: s.logMood==='up', logMoodOk: s.logMood==='ok', logMoodDown: s.logMood==='down',
       pomoTxt: Math.floor((s.pomoSec||0)/60)+':'+String((s.pomoSec||0)%60).padStart(2,'0'), pomoRunning:s.pomoRunning,
-      focusVisible: s.focusOpen && !s.focusMinimized, focusPill: s.focusOpen && s.focusMinimized, focusRunning: s.focusRunning, focusDone: s.focusDone, ambientOn: s.ambient,
+      focusVisible: s.focusOpen && !s.focusMinimized, focusPill: s.focusOpen && s.focusMinimized, focusRunning: s.focusRunning, focusDone: s.focusDone,
       focusTimeTxt: Math.floor((s.focusLeft||0)/60)+':'+String((s.focusLeft||0)%60).padStart(2,'0'),
       focusRingDash: (((s.focusLeft||0)/(s.focusTotal||1))*(2*Math.PI*120)).toFixed(1)+' '+(2*Math.PI*120).toFixed(1),
       focusColor: byId[s.focusNodeId]?this.groupColor(byId[s.focusNodeId].cluster):'#7a9a6f',
       focusLabel: byId[s.focusNodeId]?byId[s.focusNodeId].label:'', focusStep: byId[s.focusNodeId]?this.firstStepText(byId[s.focusNodeId]):'',
       focusEnergyTxt: (s.filters&&s.filters.energy)? ({low:'matched to low energy',med:'matched to medium energy',high:'matched to high energy'}[s.filters.energy]||'focus') : 'a 30-minute focus',
       focusPauseTxt: s.focusRunning?'pause':'resume',
-      togglePauseFocus:this.togglePauseFocus, extendFocus:this.extendFocus, skipFocus:this.skipFocus, minimizeFocus:this.minimizeFocus, resumeFromPill:this.resumeFromPill, toggleAmbient:this.toggleAmbient,
+      togglePauseFocus:this.togglePauseFocus, extendFocus:this.extendFocus, skipFocus:this.skipFocus, minimizeFocus:this.minimizeFocus, resumeFromPill:this.resumeFromPill,
       focusPresets: [15,25,30,50].map(m=>({ m, bg:(s.focusTotal===m*60)?'#7a9a6f':'transparent', color:(s.focusTotal===m*60)?'#fff':'#4c5257', border:(s.focusTotal===m*60)?'#7a9a6f':'#b7bec1', onSel:()=>this.setFocusMins(m) })),
       startPomo:this.startPomo, pausePomo:this.pausePomo, resetPomo:this.resetPomo,
       pomoIdle: !s.pomoRunning,
@@ -815,7 +829,7 @@ export default class App extends React.Component {
       showOnboarding:s.showOnboarding, onbOpacity:s.onbFading?0:1,
       headline:this.headlines[s.hIndex], hOpacity:s.hOpacity, inputVal:s.inputVal, weaving:s.weaving,
       onbInput:this.onbInput, onbKey:this.onbKey, weave:this.weave, loadExample:this.loadExample, toggleMic:this.toggleMic,
-      micBg:s.listening?'#7a9a6f':'#f7f8f8', micStroke:s.listening?'#ffffff':'#3a4045', micAnim:s.listening?'micPulse 1.4s ease-in-out infinite':'none', micNote:s.weaving?'untangling your thoughts\u2026':(s.listening?'listening\u2026 speak your tangle of thoughts':''),
+      micBg:s.listening?'#7a9a6f':'#f7f8f8', micStroke:s.listening?'#ffffff':'#3a4045', micAnim:s.listening?'micPulse 1.4s ease-in-out infinite':'none', micNote:s.weaving?'untangling your thoughts\u2026':(s.micUnsupported?'voice input needs Chrome or Edge \u2014 just type instead':(s.listening?'listening\u2026 speak your tangle of thoughts':'')),
       onbChips:this.examples.map(ex=>({short:ex.short,onClick:()=>this.fillExample(ex.full)})),
     };
   }

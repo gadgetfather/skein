@@ -8,7 +8,6 @@ export default function FocusOverlay({ v }) {
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-[rgba(43,48,52,.55)]">
           <div className="w-[min(760px,86vw)] overflow-hidden rounded-3xl border-[1.8px] border-ink-line bg-paper shadow-[8px_10px_0_rgba(0,0,0,.22)] animate-[popIn_.2s_ease]">
             <div className="flex items-center justify-between px-[22px] py-4 border-b-[1.5px] border-[#dfe4e6]">
-              <button onClick={v.toggleAmbient} className="flex cursor-pointer items-center gap-[7px] px-[11px] py-[7px] text-xs font-semibold text-[#4c5257] bg-panel border-[1.5px] border-ink-line rounded-[10px]"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#4c5257" strokeWidth="1.5" strokeLinecap="round"><path d="M3 6v4h3l4 3V3L6 6H3zM12 6a3 3 0 0 1 0 4"/></svg> ambient</button>
               <div className="flex items-center gap-[9px]"><span className="h-[9px] w-[9px] rounded-full" style={{ background: v.focusColor }}></span><span className="text-xs text-[#7b8287]">{v.focusLabel} · <b className="text-ink">focus session</b></span></div>
               <button onClick={v.skipFocus} title="end & log" className="h-[30px] w-[30px] cursor-pointer text-base text-ink-line bg-panel border-[1.5px] border-ink-line rounded-lg">×</button>
             </div>
