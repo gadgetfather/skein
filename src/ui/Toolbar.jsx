@@ -31,7 +31,7 @@ function Divider() {
 
 export default function Toolbar({ v }) {
   return (
-    <div className="fixed bottom-6 left-1/2 z-20 flex max-w-[calc(100vw-24px)] -translate-x-1/2 flex-wrap items-center justify-center gap-1.5 rounded-2xl border-[1.6px] border-ink-line bg-panel p-2 shadow-[3px_4px_0_rgba(58,64,69,.16)]">
+    <div className="fixed right-3 bottom-[max(12px,env(safe-area-inset-bottom))] left-3 z-20 flex max-w-none flex-nowrap items-center justify-start gap-1.5 overflow-x-auto rounded-2xl border-[1.6px] border-ink-line bg-panel p-2 shadow-[3px_4px_0_rgba(58,64,69,.16)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:right-auto sm:bottom-6 sm:left-1/2 sm:max-w-[calc(100vw-24px)] sm:-translate-x-1/2 sm:justify-center">
       <ToolButton title="undo (Cmd/Ctrl+Z)" onClick={v.undo}>
         <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 4L3 7l3.5 3"/><path d="M3 7h8a4 4 0 0 1 0 8H8"/></svg>
       </ToolButton>

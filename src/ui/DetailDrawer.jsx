@@ -14,7 +14,7 @@ export default function DetailDrawer({ v }) {
   return (
     <>
       <div onClick={v.closeDrawer} className="fixed inset-0 z-30 bg-[rgba(43,48,52,.22)]"></div>
-      <aside aria-label={`${sel.label} interest details`} className="fixed top-0 right-0 bottom-0 z-[31] flex w-[400px] max-w-[calc(100vw-12px)] flex-col overflow-y-auto border-l-[1.8px] border-ink-line bg-[#f4f6f7] px-6 py-5 shadow-[-6px_0_0_rgba(58,64,69,.08)] animate-[fadeUp_.18s_ease]">
+      <aside aria-label={`${sel.label} interest details`} className="fixed inset-0 z-[31] flex w-full flex-col overflow-y-auto bg-[#f4f6f7] px-5 py-5 pb-[max(20px,env(safe-area-inset-bottom))] animate-[fadeUp_.18s_ease] sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:w-[400px] sm:border-l-[1.8px] sm:border-ink-line sm:px-6 sm:shadow-[-6px_0_0_rgba(58,64,69,.08)]">
         <header className="mb-5">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] font-semibold uppercase tracking-[.1em] text-muted">interest</span>

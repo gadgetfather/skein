@@ -140,6 +140,11 @@ export default function RouteMap({ v }) {
       window.removeEventListener('blur',onBlur);
     };
   },[Boolean(r)]);
+  useEffect(()=>{
+    if(!r||typeof window==='undefined'||window.innerWidth>=768)return;
+    const nextZoom=Math.max(.25,Math.min(1,(window.innerWidth-24)/1360,(window.innerHeight-180)/740));
+    setView({zoom:Math.round(nextZoom*100)/100,panX:0,panY:0});
+  },[r?.interest?.id]);
   if(!r)return null;
   const {interest,map}=r;
   const {positions,width,height}=layoutNodes(map.nodes);
@@ -162,7 +167,7 @@ export default function RouteMap({ v }) {
     const deltaY=e.deltaY;
     setView(current=>{
       const factor=Math.exp(-deltaY*.0012);
-      const nextZoom=Math.max(.5,Math.min(1.35,Math.round(current.zoom*factor*100)/100));
+      const nextZoom=Math.max(.25,Math.min(1.35,Math.round(current.zoom*factor*100)/100));
       if(nextZoom===current.zoom)return current;
       const worldX=(sx-current.panX)/current.zoom;
       const worldY=(sy-current.panY)/current.zoom;
@@ -170,11 +175,16 @@ export default function RouteMap({ v }) {
     });
   };
   const stepZoom=(amount)=>setView(current=>{
-    const nextZoom=Math.max(.5,Math.min(1.35,Math.round((current.zoom+amount)*100)/100));
+    const nextZoom=Math.max(.25,Math.min(1.35,Math.round((current.zoom+amount)*100)/100));
     const ratio=nextZoom/current.zoom;
     return {...current,zoom:nextZoom,panX:current.panX*ratio,panY:current.panY*ratio};
   });
-  const resetView=()=>setView({zoom:1,panX:0,panY:0});
+  const resetView=()=>{
+    const nextZoom=typeof window!=='undefined'&&window.innerWidth<768
+      ? Math.max(.25,Math.min(1,(window.innerWidth-24)/1360,(window.innerHeight-180)/740))
+      : 1;
+    setView({zoom:Math.round(nextZoom*100)/100,panX:0,panY:0});
+  };
   const onPanStart=(e)=>{
     const spacePan=spaceHeldRef.current&&e.button===0;
     const middlePan=e.button===1;
@@ -204,24 +214,25 @@ export default function RouteMap({ v }) {
     setPanning(false);
   };
   return (
-    <div className="fixed inset-0 z-[55] flex flex-col overflow-hidden bg-paper animate-[fadeUp_.18s_ease]">
-      <div className="relative z-10 flex flex-none items-center justify-between border-b-[1.6px] border-ink-line bg-[rgba(247,248,248,.94)] px-6 py-3.5 shadow-[0_3px_0_rgba(58,64,69,.06)] backdrop-blur-[5px]">
-        <div className="flex items-center gap-3">
+    <div className="fixed inset-0 z-[55] flex h-dvh flex-col overflow-hidden bg-paper animate-[fadeUp_.18s_ease]">
+      <div className="relative z-10 flex flex-none flex-col gap-2 border-b-[1.6px] border-ink-line bg-[rgba(247,248,248,.94)] px-3 py-3 shadow-[0_3px_0_rgba(58,64,69,.06)] backdrop-blur-[5px] sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-3.5">
+        <div className="flex min-w-0 items-center gap-3">
           <button onClick={r.onClose} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line bg-paper-2 text-lg text-ink">←</button>
-          <div><div className="flex items-baseline gap-2"><span className="font-hand text-[28px] font-bold leading-none text-ink">{interest.label}</span><span className="rounded-[8px] border-[1.3px] border-[#b0975a] bg-[rgba(176,151,90,.12)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[.07em] text-[#806b35]">route map</span>{map.status==='draft'&&<span className="text-[11px] font-semibold text-[#b07d67]">AI draft · review before using</span>}</div><div className="mt-1 max-w-[620px] truncate text-xs text-muted-2">{interest.directionState==='open'?'∞ open-ended road':(interest.direction||'Direction still unclear')} · from {interest.currentPosition||'where you are today'}</div></div>
+          <div className="min-w-0"><div className="flex min-w-0 items-baseline gap-2"><span className="truncate font-hand text-[24px] font-bold leading-none text-ink sm:text-[28px]">{interest.label}</span><span className="hidden rounded-[8px] border-[1.3px] border-[#b0975a] bg-[rgba(176,151,90,.12)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[.07em] text-[#806b35] sm:inline">route map</span>{map.status==='draft'&&<span className="whitespace-nowrap text-[10px] font-semibold text-[#b07d67] sm:text-[11px]">AI draft</span>}</div><div className="mt-1 max-w-[620px] truncate text-[10px] text-muted-2 sm:text-xs">{interest.directionState==='open'?'∞ open-ended road':(interest.direction||'Direction still unclear')} · from {interest.currentPosition||'where you are today'}</div></div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex max-w-full items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {map.status==='draft'&&<button onClick={r.onAccept} className="cursor-pointer rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line bg-accent px-3.5 py-2 text-xs font-bold text-white shadow-[2px_2px_0_rgba(58,64,69,.16)]">use this route ✓</button>}
           <button onClick={r.onAutoArrange} title="return nodes to the staged layout" className="cursor-pointer rounded-[10px_8px_11px_8px] border-[1.5px] border-[#b7bec1] bg-paper-2 px-3 py-2 text-xs font-semibold text-muted-2 shadow-[1px_2px_0_rgba(58,64,69,.08)]">↹ tidy map</button>
           <button onClick={r.onGenerate} disabled={r.busy} className="cursor-pointer rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line bg-paper-2 px-3.5 py-2 text-xs font-bold text-ink shadow-[2px_2px_0_rgba(58,64,69,.1)] disabled:cursor-wait disabled:opacity-60">{r.busy?'✦ mapping the route…':hasRoute?'✦ redraft with AI':'✦ draft route with AI'}</button>
-          <button onClick={r.onClose} title="close route map" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border-[1.5px] border-ink-line bg-paper-2 text-lg text-ink">×</button>
+          <button onClick={r.onClose} title="close route map" className="hidden h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border-[1.5px] border-ink-line bg-paper-2 text-lg text-ink sm:flex">×</button>
         </div>
       </div>
 
-      <div onWheel={onWheelZoom} onPointerDownCapture={onPanStart} onPointerMoveCapture={onPanMove} onPointerUpCapture={onPanEnd} onPointerCancelCapture={onPanEnd} className={`relative flex-1 overflow-hidden overscroll-contain bg-[radial-gradient(#c8ced1_1px,transparent_1px)] bg-[size:26px_26px] ${panning?'cursor-grabbing':'cursor-grab'}`}>
+      <div onWheel={onWheelZoom} onPointerDownCapture={onPanStart} onPointerMoveCapture={onPanMove} onPointerUpCapture={onPanEnd} onPointerCancelCapture={onPanEnd} className={`relative flex-1 touch-none overflow-hidden overscroll-contain bg-[radial-gradient(#c8ced1_1px,transparent_1px)] bg-[size:26px_26px] ${panning?'cursor-grabbing':'cursor-grab'}`}>
         {spaceHeld&&<div aria-hidden="true" className={`absolute inset-0 z-[20] ${panning?'cursor-grabbing':'cursor-grab'}`}></div>}
-        <div data-route-overlay className="absolute top-5 left-6 z-[30] w-fit max-w-[calc(100%-48px)]">
-        <div aria-label="Route map legend" className="flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-[10px_8px_11px_9px] border-[1.3px] border-[#c7ced0] bg-[rgba(251,251,250,.94)] px-3 py-2 text-[9px] text-muted-2 shadow-[1px_2px_0_rgba(58,64,69,.07)] backdrop-blur-[3px]">
+        <div data-route-overlay className="absolute top-3 left-3 z-[30] w-fit max-w-[calc(100%-24px)] sm:top-5 sm:left-6 sm:max-w-[calc(100%-48px)]">
+        <div className="flex items-center gap-2 rounded-[10px_8px_11px_9px] border-[1.3px] border-[#c7ced0] bg-[rgba(251,251,250,.94)] px-2.5 py-2 text-[9px] text-muted-2 shadow-[1px_2px_0_rgba(58,64,69,.07)] backdrop-blur-[3px] sm:hidden"><span>drag canvas = pan</span><span className="flex overflow-hidden rounded-[5px] border border-[#c7ced0] bg-paper text-ink"><button onClick={()=>stepZoom(-.1)} aria-label="zoom Route Map out" className="w-6 border-r border-[#d9dddf]">−</button><button onClick={resetView} className="min-w-10 px-1 py-0.5 font-bold">{Math.round(zoom*100)}%</button><button onClick={()=>stepZoom(.1)} aria-label="zoom Route Map in" className="w-6 border-l border-[#d9dddf]">+</button></span></div>
+        <div aria-label="Route map legend" className="hidden max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-[10px_8px_11px_9px] border-[1.3px] border-[#c7ced0] bg-[rgba(251,251,250,.94)] px-3 py-2 text-[9px] text-muted-2 shadow-[1px_2px_0_rgba(58,64,69,.07)] backdrop-blur-[3px] sm:flex">
           <span className="flex items-center gap-1.5 font-bold text-accent-deep"><i className="flex h-4 w-4 items-center justify-center rounded-full border-[1.3px] border-accent bg-paper text-[9px] not-italic">✓</i>click available = complete</span>
           <span className="flex items-center gap-1.5"><i className="flex h-4 w-4 items-center justify-center rounded-full border border-[#aeb5b8] bg-paper text-muted"><svg width="8" height="9" viewBox="0 0 10 11" fill="none" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round"><rect x="1.5" y="4.5" width="7" height="5" rx="1.2"/><path d="M3 4.5V3a2 2 0 0 1 4 0v1.5"/></svg></i>click locked = what’s missing</span>
           <span className="h-4 border-l border-[#d9dddf]"></span>
@@ -250,8 +261,8 @@ export default function RouteMap({ v }) {
           </div>
         </div>
 
-        {r.error&&<div className="absolute right-5 bottom-5 z-[8] w-[300px] rounded-[12px_9px_13px_10px] border-[1.5px] border-ink-line bg-panel p-3.5 text-xs leading-[1.4] text-[#a56f8f] shadow-[3px_4px_0_rgba(58,64,69,.12)]">{r.error}</div>}
-        {map.assumptions?.length>0&&<details data-route-overlay className="absolute right-5 bottom-5 z-[8] w-[310px] rounded-[12px_9px_13px_10px] border-[1.5px] border-ink-line bg-panel p-3 shadow-[3px_4px_0_rgba(58,64,69,.12)]"><summary className="cursor-pointer text-[10px] font-bold uppercase tracking-[.07em] text-muted">{map.assumptions.length} assumption{map.assumptions.length===1?'':'s'} to check</summary><ul className="mt-2 space-y-1.5 pl-4 text-[11px] leading-[1.4] text-muted-2">{map.assumptions.map((a,i)=><li key={i} className="list-disc">{a}</li>)}</ul></details>}
+        {r.error&&<div className="absolute right-3 bottom-3 left-3 z-[8] rounded-[12px_9px_13px_10px] border-[1.5px] border-ink-line bg-panel p-3.5 text-xs leading-[1.4] text-[#a56f8f] shadow-[3px_4px_0_rgba(58,64,69,.12)] sm:right-5 sm:bottom-5 sm:left-auto sm:w-[300px]">{r.error}</div>}
+        {map.assumptions?.length>0&&<details data-route-overlay className="absolute right-3 bottom-3 left-3 z-[8] rounded-[12px_9px_13px_10px] border-[1.5px] border-ink-line bg-panel p-3 shadow-[3px_4px_0_rgba(58,64,69,.12)] sm:right-5 sm:bottom-5 sm:left-auto sm:w-[310px]"><summary className="cursor-pointer text-[10px] font-bold uppercase tracking-[.07em] text-muted">{map.assumptions.length} assumption{map.assumptions.length===1?'':'s'} to check</summary><ul className="mt-2 space-y-1.5 pl-4 text-[11px] leading-[1.4] text-muted-2">{map.assumptions.map((a,i)=><li key={i} className="list-disc">{a}</li>)}</ul></details>}
       </div>
 
       {r.addOpen&&<div className="fixed bottom-5 left-1/2 z-[60] w-[min(620px,calc(100vw-32px))] -translate-x-1/2 rounded-[16px_12px_17px_13px] border-[1.8px] border-ink-line bg-panel p-4 shadow-[5px_6px_0_rgba(58,64,69,.18)] animate-[fadeUp_.16s_ease]"><div className="mb-2 flex items-center justify-between"><span className="font-hand text-[21px] font-bold text-ink">what does “{r.addParentLabel}” unlock?</span><button onClick={r.onCancelAdd} className="cursor-pointer border-none bg-transparent text-lg text-muted">×</button></div><input autoFocus value={r.addLabel} onChange={r.onAddLabel} onKeyDown={e=>{if(e.key==='Enter')r.onAddNode();if(e.key==='Escape')r.onCancelAdd();}} placeholder="a concrete task, capability, resource, or milestone…" className="w-full rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line bg-paper-2 px-3 py-2.5 text-[13px] text-ink outline-none"/><div className="mt-2.5 flex flex-wrap items-center gap-1.5">{r.typeChips.map(t=><button key={t.type} onClick={t.onSelect} className="cursor-pointer rounded-[8px] border-[1.3px] px-2 py-1 text-[10px] font-semibold" style={{background:t.active?(TYPE_COLORS[t.type]||'#7a9a6f'):'#fbfbfa',borderColor:t.active?(TYPE_COLORS[t.type]||'#7a9a6f'):'#b7bec1',color:t.active?'#fff':'#2b3034'}}>{t.label}</button>)}<span className="flex-1"></span><button onClick={r.onAddNode} className="cursor-pointer rounded-[9px_7px_10px_8px] border-[1.5px] border-ink-line bg-accent px-3 py-1.5 text-xs font-bold text-white">add to route →</button></div></div>}

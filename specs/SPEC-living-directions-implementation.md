@@ -249,6 +249,16 @@ The connected Supabase migration is a later slice. This slice keeps the existing
 - Confirmed the production magic-link sign-in and deployed cloud-sync experience are working.
 - Closed the final activation gap; Weekly Reweave is now the next product slice.
 
+### 2026-07-21 — Mobile landing and app pass
+
+- Made the landing page responsive from phone widths upward: compact navigation, scaled typography, a stacked waitlist form, phone-sized canvas preview, single-column feature/FAQ flow, and reduced section spacing.
+- Kept the spatial canvas available on phones instead of replacing it with a desktop-only warning.
+- Added a horizontally scrollable touch toolbar, dynamic-viewport height, safe-area spacing, and content-fit reset so a full example canvas can be reached from a narrow screen.
+- Converted Brain Dump, interest details, expanded detail, log-session, Decide, and focus surfaces into viewport-contained mobile sheets and modals.
+- Made onboarding keyboard-safe and scrollable, with a stacked composer and full-width mobile action.
+- Added a compact Route Map header and legend, touch panning, phone-fit initial zoom/reset, scrollable actions, and viewport-contained notices.
+- Preserved the existing tablet and desktop layouts through breakpoint-specific styling.
+
 ---
 
 ## 5. Verification log
@@ -257,6 +267,7 @@ The connected Supabase migration is a later slice. This slice keeps the existing
 
 - `npm run build` — passed on July 20, 2026.
 - `npm run build` — passed again on July 21, 2026 before the Vercel deployment.
+- `npm run build` — passed after the mobile landing and app pass on July 21, 2026.
 - Next.js compiled the canvas, all interest/Decide child routes, and `/api/route-map`, `/api/suggest`, and `/api/weave` successfully.
 
 ### Vercel production smoke test
@@ -320,6 +331,14 @@ The connected Supabase migration is a later slice. This slice keeps the existing
 - Completed a magic-link sign-in and confirmed authenticated startup read, initial upsert, update, reload/reconciliation, and a second update all reached `saved to cloud` without browser warnings or errors.
 - Verified owner isolation structurally through the deployed owner-scoped RLS policies and behaviorally across the authenticated owner path plus rejected anonymous reads/writes.
 
+### Mobile responsive walkthrough
+
+- Checked the landing page at 390×844: navigation, hero, waitlist, live-canvas link, and canvas preview fit without horizontal clipping.
+- Checked fresh-state onboarding at 390×844: headline, composer, microphone, Weave action, examples, and account status remain visible and touch-sized.
+- Loaded the example canvas and confirmed content-fit reset presents the complete graph, while the bottom toolbar remains horizontally scrollable.
+- Opened an interest and confirmed its direction, current position, Route Map, next moves, check-in, settings disclosure, account status, and close/expand controls fit in a full-screen mobile sheet.
+- Opened Decide and Route Map at phone width; both stayed within the viewport, Route Map opened at a whole-map 27% fit with touch panning and zoom controls, and captured browser logs contained no warnings or errors.
+
 ---
 
 ## 6. Remaining work
@@ -329,6 +348,7 @@ These are intentionally not implemented or fully activated yet:
 - [x] Apply the checked-in migration to the configured Supabase project and verify anonymous access is denied.
 - [x] Configure local authentication redirect URLs and complete an authenticated upload/download/RLS smoke test.
 - [x] Add `https://skein-phi.vercel.app/canvas` to the Supabase Auth redirect allow list and complete a production magic-link sync smoke test.
+- [x] Make the landing page and core canvas workflows mobile friendly.
 - [ ] Weekly Reweave ritual.
 - [ ] Cross-interest typed edges and Braid sessions.
 - [ ] Route branch expansion, alternate-route comparisons, and per-branch AI regeneration.

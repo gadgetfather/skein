@@ -9,7 +9,7 @@ export default function DecideFlow({ v }) {
           <div onClick={v.closeDecide} className="fixed inset-0 z-40 bg-[rgba(43,48,52,.28)] backdrop-blur-[2px]"></div>
 
           {v.phaseMenu && (
-            <div className="fixed top-1/2 left-1/2 z-[41] w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-[18px] border-[1.8px] border-ink-line bg-panel p-[26px] shadow-[6px_8px_0_rgba(58,64,69,.18)] animate-[popIn_.18s_ease]">
+            <div className="fixed top-1/2 left-1/2 z-[41] max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[440px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[18px] border-[1.8px] border-ink-line bg-panel p-5 shadow-[6px_8px_0_rgba(58,64,69,.18)] animate-[popIn_.18s_ease] sm:p-[26px]">
               <div className="font-hand text-[28px] font-bold text-ink">feeling scattered?</div>
               <div className="mt-0.5 mb-4 text-[13px] text-[#7b8287]">two ways to land on one thing.</div>
               {v.hasNeglect && (
@@ -29,7 +29,7 @@ export default function DecideFlow({ v }) {
           )}
 
           {v.phaseFilter && (
-            <div className="fixed top-1/2 left-1/2 z-[41] w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-[18px] border-[1.8px] border-ink-line bg-panel p-[26px] shadow-[6px_8px_0_rgba(58,64,69,.18)] animate-[popIn_.18s_ease]">
+            <div className="fixed top-1/2 left-1/2 z-[41] max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[480px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[18px] border-[1.8px] border-ink-line bg-panel p-5 shadow-[6px_8px_0_rgba(58,64,69,.18)] animate-[popIn_.18s_ease] sm:p-[26px]">
               <div className="font-hand text-[28px] font-bold text-ink">where are you right now?</div>
               <div className="mt-0.5 mb-[18px] text-[13px] text-[#7b8287]">tap what fits — I'll narrow it down.</div>
               {v.filterGroups.map(g => (
@@ -52,7 +52,7 @@ export default function DecideFlow({ v }) {
       {v.resultOpen && (
         <>
           <div onClick={v.closeResult} className="fixed inset-0 z-40 bg-[rgba(43,48,52,.28)] backdrop-blur-[2px]"></div>
-          <div className="fixed top-1/2 left-1/2 z-[41] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[18px] border-[1.8px] border-ink-line bg-panel p-[26px] shadow-[6px_8px_0_rgba(58,64,69,.18)] animate-[popIn_.2s_ease]">
+          <div className="fixed top-1/2 left-1/2 z-[41] max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[420px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[18px] border-[1.8px] border-ink-line bg-panel p-5 shadow-[6px_8px_0_rgba(58,64,69,.18)] animate-[popIn_.2s_ease] sm:p-[26px]">
             <div className="text-[13px] text-[#7b8287]">right now, do this →</div>
             <div className="mt-1.5 mb-1 font-hand text-[38px] leading-[1.05] font-bold text-ink">{v.chosenLabel}</div>
             <div className="mb-2 inline-block px-2.5 py-[3px] text-xs text-accent-deep bg-[rgba(122,154,111,.14)] rounded-[9px] border-[1.4px] border-accent">{v.chosenReason}</div>
@@ -68,7 +68,7 @@ export default function DecideFlow({ v }) {
                 <div className="mt-1 text-[13px] leading-[1.35] text-muted-2">{v.chosenCombo}</div>
               </div>
             )}
-            <div className="mt-[18px] flex gap-2.5">
+            <div className="mt-[18px] flex flex-col gap-2.5 sm:flex-row">
               <button onClick={v.startThis} disabled={v.chosenStepBusy} className="flex-1 cursor-pointer p-[11px] text-[15px] font-bold text-white bg-accent rounded-[11px_9px_12px_9px] border-[1.6px] border-ink-line shadow-[2px_3px_0_rgba(58,64,69,.18)] disabled:cursor-wait disabled:opacity-60">{v.chosenStepBusy?'shaping the step…':'start this'}</button>
               <button onClick={v.notToday} className="cursor-pointer px-4 py-[11px] text-sm font-semibold text-ink bg-paper-2 rounded-[9px_11px_8px_12px] border-[1.6px] border-ink-line shadow-[2px_3px_0_rgba(58,64,69,.1)]">not today ↻</button>
             </div>

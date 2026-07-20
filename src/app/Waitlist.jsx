@@ -21,8 +21,8 @@ export default function Waitlist({ dark }) {
   const btnTone = dark
     ? 'shadow-[2px_2px_0_rgba(0,0,0,.2)]'
     : 'shadow-[2px_2px_0_rgba(58,64,69,.18)]';
-  const pillClass = `flex items-center gap-2 rounded-[14px_11px_13px_10px] border-[1.8px] border-ink-line py-1.5 pr-1.5 pl-4 ${pillTone}`;
-  const btnClass = `cursor-pointer rounded-[11px_9px_12px_9px] border-[1.6px] border-ink-line bg-accent px-[18px] py-[11px] text-[15px] font-bold text-white ${btnTone}`;
+  const pillClass = `flex w-full max-w-[360px] flex-col items-stretch gap-2 rounded-[14px_11px_13px_10px] border-[1.8px] border-ink-line p-1.5 sm:flex-row sm:items-center sm:pl-4 ${pillTone}`;
+  const btnClass = `cursor-pointer whitespace-nowrap rounded-[11px_9px_12px_9px] border-[1.6px] border-ink-line bg-accent px-[18px] py-[11px] text-[15px] font-bold text-white ${btnTone}`;
 
   if (joined) {
     return (
@@ -35,7 +35,7 @@ export default function Waitlist({ dark }) {
   if (!mounted) {
     return (
       <div className={pillClass}>
-        <span className="w-[200px] text-left text-[15px] text-[#a4abae]">you@email.com</span>
+        <span className="min-w-0 flex-1 px-2 py-1 text-left text-[15px] text-[#a4abae] sm:px-0 sm:py-0">you@email.com</span>
         <span className={btnClass}>join the waitlist</span>
       </div>
     );
@@ -51,7 +51,7 @@ export default function Waitlist({ dark }) {
         onKeyDown={e => { if (e.key === 'Enter') join(); }}
         placeholder="you@email.com"
         aria-label="email address"
-        className="w-[200px] border-none bg-transparent text-left text-[15px] text-ink outline-none"
+        className="min-w-0 flex-1 border-none bg-transparent px-2 py-1 text-left text-[15px] text-ink outline-none sm:px-0 sm:py-0"
       />
       <button onClick={join} className={btnClass}>join the waitlist</button>
     </div>

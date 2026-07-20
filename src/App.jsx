@@ -184,7 +184,9 @@ export default class App extends React.Component {
     setTimeout(()=>{
       const valid=new Set(['learn','craft','body','other']);
       const nodes=this.seed.map(n=>this.normalizeNode({ ...n, cluster: valid.has(n.cluster)?n.cluster:this.classify(n) }));
-      this.setState({ nodes, edges:this.seedEdges.map(([a,b])=>({a,b})), showOnboarding:false, onbFading:false });
+      this.setState({ nodes, edges:this.seedEdges.map(([a,b])=>({a,b})), showOnboarding:false, onbFading:false },()=>{
+        if(typeof window!=='undefined'&&window.matchMedia('(max-width: 767px)').matches)this.zoomReset();
+      });
     },420);
   };
   handleKey = (e) => {
@@ -632,7 +634,22 @@ export default class App extends React.Component {
   };
   zoomIn = () => this.zoomBy(1.2);
   zoomOut = () => this.zoomBy(1/1.2);
-  zoomReset = () => this.setState({ zoom:1, panX:0, panY:0 });
+  zoomReset = () => {
+    const r=this.canvasEl&&this.canvasEl.getBoundingClientRect();
+    const nodes=this.state.nodes||[];
+    if(!r||!nodes.length){ this.setState({zoom:1,panX:0,panY:0}); return; }
+    const pad=r.width<768?28:72;
+    const toolbarRoom=r.width<768?124:72;
+    const minX=Math.min(...nodes.map(n=>n.x))-36;
+    const minY=Math.min(...nodes.map(n=>n.y))-52;
+    const maxX=Math.max(...nodes.map(n=>n.x+this.NW))+36;
+    const maxY=Math.max(...nodes.map(n=>n.y+96))+52;
+    const contentW=Math.max(1,maxX-minX),contentH=Math.max(1,maxY-minY);
+    const zoom=Math.min(1,Math.max(.35,Math.min((r.width-pad*2)/contentW,(r.height-toolbarRoom-pad)/contentH)));
+    const panX=(r.width-contentW*zoom)/2-minX*zoom;
+    const panY=Math.max(58,(r.height-toolbarRoom-contentH*zoom)/2-minY*zoom);
+    this.setState({zoom,panX,panY});
+  };
   onCanvasPointerDown = (e) => {
     if (this.state.tool !== 'hand' && !this._spaceHeld) return;
     const sx=e.clientX, sy=e.clientY, bx=this.state.panX, by=this.state.panY;
@@ -1090,14 +1107,14 @@ export default class App extends React.Component {
   render() {
     const v = this.derive();
     return (
-      <div className="flex h-screen flex-col overflow-hidden font-sans">
+      <div className="flex h-dvh flex-col overflow-hidden font-sans">
         <svg width="0" height="0" className="pointer-events-none absolute">
           <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.4"/></filter>
           <filter id="edge"><feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.8"/></filter>
         </svg>
 
         {/* canvas */}
-        <div ref={v.setCanvas} onClick={v.onCanvasClick} onPointerDown={v.onCanvasPointerDown} className="relative flex-auto overflow-hidden bg-[radial-gradient(#c8ced1_1px,transparent_1px)] bg-[size:26px_26px]" style={{ cursor: v.canvasCursor }}>
+        <div ref={v.setCanvas} onClick={v.onCanvasClick} onPointerDown={v.onCanvasPointerDown} className="relative flex-auto touch-none overflow-hidden bg-[radial-gradient(#c8ced1_1px,transparent_1px)] bg-[size:26px_26px]" style={{ cursor: v.canvasCursor }}>
           <div ref={v.setViewport} className="absolute inset-0 origin-top-left" style={{ transform: `translate(${v.panX}px, ${v.panY}px) scale(${v.zoom})` }}>
 
             {/* cluster enclosures */}
@@ -1188,7 +1205,7 @@ export default class App extends React.Component {
 
           {/* empty hint */}
           {v.isEmpty && (
-            <div className="pointer-events-none absolute top-1/2 left-1/2 z-[3] -translate-x-1/2 -translate-y-1/2 text-center">
+            <div className="pointer-events-none absolute top-1/2 left-1/2 z-[3] w-[calc(100%-40px)] -translate-x-1/2 -translate-y-1/2 text-center">
               <div className="font-hand text-[30px] text-muted">a quiet, empty canvas</div>
               <div className="mt-1.5 text-sm text-[#a4abae]">click anywhere to drop a thought — or use brain&nbsp;dump</div>
             </div>
@@ -1196,7 +1213,7 @@ export default class App extends React.Component {
 
           {/* spinning toast */}
           {v.spinning && (
-            <div className="absolute bottom-[34px] left-1/2 z-[14] -translate-x-1/2 animate-[fadeUp_.2s_ease] rounded-[13px] bg-ink px-[22px] py-3 font-hand text-2xl font-bold text-white shadow-[3px_4px_0_rgba(0,0,0,.2)]">choosing for you…</div>
+            <div className="absolute bottom-[110px] left-1/2 z-[14] -translate-x-1/2 animate-[fadeUp_.2s_ease] whitespace-nowrap rounded-[13px] bg-ink px-[22px] py-3 font-hand text-2xl font-bold text-white shadow-[3px_4px_0_rgba(0,0,0,.2)] sm:bottom-[34px]">choosing for you…</div>
           )}
         </div>
 
@@ -1206,14 +1223,14 @@ export default class App extends React.Component {
         <RouteMap v={v}/>
 
         {/* wordmark */}
-        <div className="pointer-events-none fixed top-5 left-6 z-20 flex items-baseline gap-2.5">
-          <span className="font-hand text-[28px] leading-none font-bold text-ink">Skein</span>
-          <span className="text-xs text-[#a4abae]">parallel interests, one calm canvas</span>
+        <div className="pointer-events-none fixed top-4 left-4 z-20 flex items-baseline gap-2.5 sm:top-5 sm:left-6">
+          <span className="font-hand text-[26px] leading-none font-bold text-ink sm:text-[28px]">Skein</span>
+          <span className="hidden text-xs text-[#a4abae] sm:inline">parallel interests, one calm canvas</span>
         </div>
 
         {/* connect hint */}
         {v.connectMode && (
-          <div className="fixed top-5 left-1/2 z-[21] -translate-x-1/2 rounded-xl bg-ink px-4 py-2 text-[13px] font-semibold text-white shadow-[2px_3px_0_rgba(0,0,0,.18)]">drag from a side dot to another card to link · tap a line to remove · esc to finish</div>
+          <div className="fixed top-14 left-1/2 z-[21] w-[calc(100%-24px)] -translate-x-1/2 rounded-xl bg-ink px-4 py-2 text-center text-[11px] font-semibold text-white shadow-[2px_3px_0_rgba(0,0,0,.18)] sm:top-5 sm:w-auto sm:whitespace-nowrap sm:text-[13px]">drag from a side dot to another card to link · tap a line to remove · esc to finish</div>
         )}
 
         <Toolbar v={v}/>
