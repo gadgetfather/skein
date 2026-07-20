@@ -59,7 +59,7 @@ export default class App extends React.Component {
       labelOverrides: savedG.labelOverrides || {},
       editingGroup:null, groupName:'',
       connectMode:false, pendingConnect:null, rewire:null,
-      tool:'select', panX:0, panY:0, zoom:1,
+      tool:'select', panX:0, panY:0, zoom:1, spacePan:false, panning:false,
       selectedId:null, selectedIds:[],
       expandedId:null, logOpen:false, logDur:25, logNote:'', logMood:'ok', pomoSec:1500, pomoRunning:false,
       focusOpen:false, focusMinimized:false, focusNodeId:null, focusTotal:1800, focusLeft:1800, focusRunning:false, focusDone:false,
@@ -75,9 +75,11 @@ export default class App extends React.Component {
     this.NW = 154; this.NHc = 48; // node width, half-height (fixed node height 96)
   }
   componentDidMount(){ this._onKey = (e)=>this.handleKey(e); window.addEventListener('keydown', this._onKey);
+    this._onKeyUp = (e)=>this.handleKeyUp(e); window.addEventListener('keyup', this._onKeyUp);
+    this._onBlur = ()=>{ if(this._spaceHeld){ this._spaceHeld=false; this.setState({ spacePan:false, panning:false }); } }; window.addEventListener('blur', this._onBlur);
     this._ht = setInterval(()=>{ if(!this.state.showOnboarding) return; this.setState({hOpacity:0}); setTimeout(()=>this.setState(st=>({hIndex:(st.hIndex+1)%this.headlines.length, hOpacity:1})),420); }, 4200);
   }
-  componentWillUnmount(){ if(this._spin) clearInterval(this._spin); if(this._ht) clearInterval(this._ht); if(this._micNote) clearTimeout(this._micNote); if(this._rec){ try{ this._rec.stop(); }catch(e){} } if(this._pomo) clearInterval(this._pomo); if(this._focus) clearInterval(this._focus); if(this._onKey) window.removeEventListener('keydown', this._onKey); }
+  componentWillUnmount(){ if(this._spin) clearInterval(this._spin); if(this._ht) clearInterval(this._ht); if(this._micNote) clearTimeout(this._micNote); if(this._rec){ try{ this._rec.stop(); }catch(e){} } if(this._pomo) clearInterval(this._pomo); if(this._focus) clearInterval(this._focus); if(this._onKey) window.removeEventListener('keydown', this._onKey); if(this._onKeyUp) window.removeEventListener('keyup', this._onKeyUp); if(this._onBlur) window.removeEventListener('blur', this._onBlur); }
   parseInterests(text){
     let t=(text||'').replace(/^\s*(i\s+want\s+to|i'd\s+like\s+to|i\s+wanna|help\s+me|i\s+need\s+to|i\s+keep\s+meaning\s+to)\s+/i,'');
     const parts=t.split(/\s*(?:,|;|\band\b|&|\+|\/|\n|\bplus\b)\s*/i).map(p=>p.trim()).filter(Boolean);
@@ -159,6 +161,11 @@ export default class App extends React.Component {
     if (tgt && (tgt.tagName==='INPUT' || tgt.tagName==='TEXTAREA' || tgt.isContentEditable)) return;
     const s = this.state;
     if (s.showOnboarding) return;
+    if (e.key === ' ' || e.code === 'Space') { // hold space to pan the canvas (Figma-style)
+      e.preventDefault();
+      if (!this._spaceHeld) { this._spaceHeld = true; this.setState({ spacePan:true }); }
+      return;
+    }
     const mod = e.metaKey || e.ctrlKey;
     if (mod) {
       const mk = e.key.toLowerCase();
@@ -191,6 +198,9 @@ export default class App extends React.Component {
     else if (k==='c') this.toggleConnect();
     else if (k==='g') this.autoGroup();
     else if (k==='d') this.openDecide();
+  };
+  handleKeyUp = (e) => {
+    if (e.key === ' ' || e.code === 'Space') { this._spaceHeld = false; if (this.state.spacePan || this.state.panning) this.setState({ spacePan:false, panning:false }); }
   };
   snapshot(){ const s=this.state; return JSON.stringify({nodes:s.nodes, edges:s.edges, customGroups:s.customGroups, emptyFrames:s.emptyFrames, labelOverrides:s.labelOverrides}); }
   pushHistory(){ if(!this._hist) this._hist=[]; this._hist.push(this.snapshot()); if(this._hist.length>60) this._hist.shift(); this._future=[]; }
@@ -417,17 +427,18 @@ export default class App extends React.Component {
   zoomOut = () => this.zoomBy(1/1.2);
   zoomReset = () => this.setState({ zoom:1, panX:0, panY:0 });
   onCanvasPointerDown = (e) => {
-    if (this.state.tool !== 'hand') return;
+    if (this.state.tool !== 'hand' && !this._spaceHeld) return;
     const sx=e.clientX, sy=e.clientY, bx=this.state.panX, by=this.state.panY;
+    this.setState({ panning:true });
     const move=(ev)=>{ this._justDragged=true; this.setState({ panX:bx+(ev.clientX-sx), panY:by+(ev.clientY-sy) }); };
-    const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up); setTimeout(()=>{ this._justDragged=false; },60); };
+    const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up); this.setState({ panning:false }); setTimeout(()=>{ this._justDragged=false; },60); };
     window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
   };
   focusAdd = (el) => { if(el) setTimeout(()=>el.focus(),0); };
 
   // ---- add a thought by clicking canvas ----
   onCanvasClick = (e) => {
-    if (this._justDragged) return;
+    if (this._justDragged || this._spaceHeld) return;
     if (e.target !== this.canvasEl && e.target !== this.viewportEl) return;
     if (this.state.connectMode) { this.setState({ pendingConnect:null }); return; }
     if (this.state.tool !== 'select') return;
@@ -451,6 +462,7 @@ export default class App extends React.Component {
 
   // ---- drag a single node (pointer events) ----
   startDrag = (e, id) => {
+    if (this._spaceHeld) return; // space-pan: let the event bubble to the canvas
     if (this.state.connectMode) { e.stopPropagation(); this.handleConnectClick(id); return; }
     e.stopPropagation();
     if (e.currentTarget && e.currentTarget.setPointerCapture) { try { e.currentTarget.setPointerCapture(e.pointerId); } catch(_){} }
@@ -490,6 +502,7 @@ export default class App extends React.Component {
 
   // ---- drag an entire group by its label ----
   startGroupDrag = (e, key) => {
+    if (this._spaceHeld) return; // space-pan: let the event bubble to the canvas
     e.stopPropagation();
     const startX = e.clientX, startY = e.clientY;
     const hasMembers = this.state.nodes.some(n=>n.cluster===key);
@@ -789,7 +802,7 @@ export default class App extends React.Component {
       connectMode:s.connectMode, toggleConnect:this.toggleConnect,
       connectBg: s.connectMode ? A : '#fbfbfa', connectColor: s.connectMode ? '#fff' : '#2b3034',
       panX:s.panX, panY:s.panY, zoom:s.zoom, zoomPct:Math.round(s.zoom*100), zoomIn:this.zoomIn, zoomOut:this.zoomOut, onCanvasWheel:this.onCanvasWheel, zoomReset:this.zoomReset, rewire:s.rewire, ports,
-      canvasCursor: s.connectMode ? 'pointer' : (s.tool==='hand' ? 'grab' : 'crosshair'),
+      canvasCursor: s.panning ? 'grabbing' : (s.connectMode ? 'pointer' : ((s.tool==='hand'||s.spacePan) ? 'grab' : 'crosshair')),
       setViewport:this.setViewport, onCanvasPointerDown:this.onCanvasPointerDown,
       selectTool:this.selectTool, handTool:this.handTool,
       toolSelBg: s.tool==='select' ? A : '#fbfbfa', toolSelColor: s.tool==='select' ? '#fff' : '#2b3034',
