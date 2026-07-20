@@ -24,7 +24,7 @@ export default function Onboarding({ v }) {
           <button onClick={v.toggleMic} title="speak your thoughts" className="flex h-[38px] w-[38px] cursor-pointer items-center justify-center rounded-full border-[1.6px] border-ink-line" style={{ background: v.micBg, animation: v.micAnim }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={v.micStroke} strokeWidth="1.6" strokeLinecap="round"><rect x="6" y="2" width="4" height="8" rx="2"/><path d="M4 8a4 4 0 0 0 8 0M8 12v2"/></svg>
           </button>
-          <button onClick={v.weave} title="weave into a map" className="flex cursor-pointer items-center gap-[7px] px-4 py-[9px] text-[15px] font-bold text-white bg-accent border-[1.6px] border-ink-line rounded-[12px_10px_12px_9px] shadow-[2px_2px_0_rgba(58,64,69,.18)]">weave<span className="text-[15px]">✦</span></button>
+          <button onClick={v.weave} disabled={v.weaving} title="weave into a map" className="flex cursor-pointer items-center gap-[7px] px-4 py-[9px] text-[15px] font-bold text-white bg-accent border-[1.6px] border-ink-line rounded-[12px_10px_12px_9px] shadow-[2px_2px_0_rgba(58,64,69,.18)] disabled:cursor-wait disabled:opacity-70">{v.weaving ? 'weaving…' : 'weave'}<span className="text-[15px]" style={v.weaving ? { animation:'micPulse 1.4s ease-in-out infinite', display:'inline-block' } : undefined}>✦</span></button>
         </div>
         <div className="mt-2 h-4 text-xs text-accent">{v.micNote}</div>
 

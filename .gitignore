@@ -4,4 +4,4 @@ dist
 *.local
 .next
 next-env.d.ts
-SPEC-hackathon-review.md
+specs

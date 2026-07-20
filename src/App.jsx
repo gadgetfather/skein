@@ -53,7 +53,7 @@ export default class App extends React.Component {
     this.state = {
       nodes: initial,
       edges: firstRun ? [] : (Array.isArray(savedE) ? savedE : seedEdges.map(([a,b])=>({a,b}))),
-      showOnboarding: firstRun, onbFading:false, hIndex:Math.floor(Math.random()*5), hOpacity:1, inputVal:'', listening:false,
+      showOnboarding: firstRun, onbFading:false, hIndex:Math.floor(Math.random()*5), hOpacity:1, inputVal:'', listening:false, weaving:false,
       customGroups: Array.isArray(savedG.customGroups)? savedG.customGroups : [],
       emptyFrames: savedG.emptyFrames || {},
       labelOverrides: savedG.labelOverrides || {},
@@ -87,19 +87,48 @@ export default class App extends React.Component {
   onbKey=(e)=>{ if(e.key==='Enter') this.weave(); };
   fillExample=(full)=>this.setState({inputVal:full});
   toggleMic=()=>{ const on=!this.state.listening; this.setState({listening:on}); if(this._mic)clearTimeout(this._mic); if(on)this._mic=setTimeout(()=>this.setState({listening:false}),4000); };
-  weave=()=>{
-    const labels=this.parseInterests(this.state.inputVal);
-    if(!labels.length) return;
-    this.setState({onbFading:true, listening:false});
+  weave=async()=>{
+    const raw=(this.state.inputVal||'').trim();
+    if(!raw || this.state.weaving) return;
+    this.setState({weaving:true, listening:false});
+    let woven=null;
+    try{
+      const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),30000);
+      const res=await fetch('/api/weave',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text:raw}), signal:ctrl.signal });
+      clearTimeout(tm);
+      if(res.ok){ const j=await res.json(); if(j && Array.isArray(j.interests) && j.interests.length) woven=j; }
+    }catch(e){}
+    if(!woven){
+      // offline fallback: local parse + keyword grouping
+      const labels=this.parseInterests(raw);
+      if(!labels.length){ this.setState({weaving:false}); return; }
+      woven={ interests:labels.map(lab=>{ const label=lab.charAt(0).toUpperCase()+lab.slice(1); return { label, cluster:this.classify({label}), energy:2, priority:2, meta:'new' }; }), edges:[] };
+    }
+    this.setState({onbFading:true});
     setTimeout(()=>{
+      const valid=new Set(['learn','craft','body','other']);
+      const items=woven.interests.slice(0,10).map(it=>({
+        label:String(it.label||'').slice(0,60)||'New interest',
+        cluster: valid.has(it.cluster)?it.cluster:this.classify({label:it.label}),
+        energy: Math.min(3,Math.max(1,Math.round(it.energy)||2)),
+        priority: Math.min(3,Math.max(1,Math.round(it.priority)||2)),
+        meta: String(it.meta||'new').slice(0,24),
+      }));
+      // lay same-cluster nodes next to each other so the enclosures read cleanly
+      const clusterOrder={learn:0, craft:1, body:2, other:3};
+      const order=items.map((_,i)=>i).sort((a,b)=>(clusterOrder[items[a].cluster]??3)-(clusterOrder[items[b].cluster]??3));
+      const posOf={}; order.forEach((orig,i)=>posOf[orig]=i);
       const r=this.canvasEl&&this.canvasEl.getBoundingClientRect();
       const W=r?r.width:1000, H=r?r.height:640;
-      const n=labels.length, cols=Math.min(4,Math.ceil(Math.sqrt(n))), rows=Math.ceil(n/cols);
+      const n=items.length, cols=Math.min(4,Math.ceil(Math.sqrt(n))), rows=Math.ceil(n/cols);
       const gapX=200, gapY=150;
       const z=this.state.zoom; const startX=((W/2)-this.state.panX)/z-((cols-1)*gapX)/2-77;
       const startY=((H/2)-this.state.panY)/z-((rows-1)*gapY)/2-48;
-      const nodes=labels.map((lab,i)=>{ const label=lab.charAt(0).toUpperCase()+lab.slice(1); const col=i%cols,row=Math.floor(i/cols); return { id:'w'+Date.now()+i, label, cluster:this.classify({label}), meta:'new', energy:2, priority:2, x:Math.round(startX+col*gapX+(Math.random()*20-10)), y:Math.round(startY+row*gapY+(Math.random()*20-10)) }; });
-      this.setState({ nodes, edges:[], showOnboarding:false, onbFading:false, inputVal:'' });
+      const now=Date.now();
+      const nodes=order.map((orig,i)=>{ const it=items[orig]; const col=i%cols,row=Math.floor(i/cols); return { id:'w'+now+i, ...it, x:Math.round(startX+col*gapX+(Math.random()*20-10)), y:Math.round(startY+row*gapY+(Math.random()*20-10)) }; });
+      const seen=new Set();
+      const edges=(woven.edges||[]).filter(e=>e && Number.isInteger(e.a) && Number.isInteger(e.b) && e.a!==e.b && items[e.a] && items[e.b]).map(e=>({ a:nodes[posOf[e.a]].id, b:nodes[posOf[e.b]].id })).filter(e=>{ const k=[e.a,e.b].sort().join('|'); if(seen.has(k)) return false; seen.add(k); return true; });
+      this.setState({ nodes, edges, showOnboarding:false, onbFading:false, weaving:false, inputVal:'' });
     },420);
   };
   loadExample=()=>{
@@ -185,16 +214,16 @@ export default class App extends React.Component {
   toggleStep=(id,sid)=>{ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,steps:(n.steps||[]).map(st=>st.id===sid?{...st,done:!st.done}:st)}:n)})); };
   removeStep=(id,sid)=>{ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,steps:(n.steps||[]).filter(st=>st.id!==sid)}:n)})); };
   removeSession=(id,ts)=>{ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,sessions:(n.sessions||[]).filter(x=>x.ts!==ts)}:n)})); };
-  suggestStep=async(id)=>{ const n=this.state.nodes.find(x=>x.id===id); if(!n)return;
-    if(!(window.claude&&window.claude.complete)){ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(x=>x.id===id?{...x,steps:[...(x.steps||[]),{id:'ai'+Date.now(),text:this.nextStep(n.label),done:false}]}:x)})); return; }
+  suggestStep=async(id)=>{ const n=this.state.nodes.find(x=>x.id===id); if(!n||this.state.aiBusy)return;
     this.setState({aiBusy:true});
+    let t='';
     try{ const recent=(n.sessions||[]).slice(-4).map(x=>x.note).filter(Boolean).join('; ');
-      const prompt='You are a calm focus coach. Interest: "'+n.label+'". Goal: "'+(n.goal||'make steady progress')+'". Recent sessions: '+(recent||'none yet')+'. Suggest ONE tiny, concrete next step (max 12 words, start with a verb, no preamble, no quotes). Return only the step text.';
-      const out=await window.claude.complete(prompt);
-      const t=(out||'').trim().replace(/^["'\s\-•]+/,'').replace(/["'\s]+$/,'').slice(0,120);
-      if(t){ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(x=>x.id===id?{...x,steps:[...(x.steps||[]),{id:'ai'+Date.now(),text:t,done:false}]}:x)})); }
+      const res=await fetch('/api/suggest',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ label:n.label, goal:n.goal||'', recent }) });
+      if(res.ok){ const j=await res.json(); t=(j.step||'').trim().slice(0,120); }
     }catch(e){}
-    this.setState({aiBusy:false});
+    if(!t) t=this.nextStep(n.label); // offline fallback: local heuristic step
+    this.pushHistory();
+    this.setState(s=>({ aiBusy:false, nodes:s.nodes.map(x=>x.id===id?{...x,steps:[...(x.steps||[]),{id:'ai'+Date.now(),text:t,done:false}]}:x) }));
   };
   mapSteps(n){ return (n.steps||[]).map(st=>({ id:st.id, text:st.text, done:st.done, box: st.done?'#7a9a6f':'#fbfbfa', check: st.done?'✓':'', col: st.done?'#a4abae':'#2b3034', deco: st.done?'line-through':'none', onToggle:()=>this.toggleStep(n.id,st.id), onRemove:()=>this.removeStep(n.id,st.id) })); }
   firstStepText(n){ const st=(n&&n.steps||[]).find(x=>!x.done); return st?st.text:this.nextStep(n?n.label:''); }
@@ -784,9 +813,9 @@ export default class App extends React.Component {
       moodOkBg: s.logMood==='ok'?'#7a9a6f':'#fbfbfa', moodOkColor: s.logMood==='ok'?'#fff':'#2b3034', moodOkBorder: s.logMood==='ok'?'#7a9a6f':'#b7bec1',
       moodDownBg: s.logMood==='down'?'#7a9a6f':'#fbfbfa', moodDownColor: s.logMood==='down'?'#fff':'#2b3034', moodDownBorder: s.logMood==='down'?'#7a9a6f':'#b7bec1',
       showOnboarding:s.showOnboarding, onbOpacity:s.onbFading?0:1,
-      headline:this.headlines[s.hIndex], hOpacity:s.hOpacity, inputVal:s.inputVal,
+      headline:this.headlines[s.hIndex], hOpacity:s.hOpacity, inputVal:s.inputVal, weaving:s.weaving,
       onbInput:this.onbInput, onbKey:this.onbKey, weave:this.weave, loadExample:this.loadExample, toggleMic:this.toggleMic,
-      micBg:s.listening?'#7a9a6f':'#f7f8f8', micStroke:s.listening?'#ffffff':'#3a4045', micAnim:s.listening?'micPulse 1.4s ease-in-out infinite':'none', micNote:s.listening?'listening\u2026 speak your tangle of thoughts':'',
+      micBg:s.listening?'#7a9a6f':'#f7f8f8', micStroke:s.listening?'#ffffff':'#3a4045', micAnim:s.listening?'micPulse 1.4s ease-in-out infinite':'none', micNote:s.weaving?'untangling your thoughts\u2026':(s.listening?'listening\u2026 speak your tangle of thoughts':''),
       onbChips:this.examples.map(ex=>({short:ex.short,onClick:()=>this.fillExample(ex.full)})),
     };
   }

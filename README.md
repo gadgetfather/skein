@@ -16,10 +16,20 @@ Next.js 16 (App Router, Turbopack) + React 19 + Tailwind CSS v4, plain JavaScrip
 
 ```sh
 npm install
+cp .env.example .env.local   # add your OpenRouter API key (optional — see below)
 npm run dev      # http://localhost:3000
 npm run build    # production build
 npm start        # serve the production build
 ```
+
+## How GPT-5.6 is used
+
+Skein calls **GPT-5.6** (default `openai/gpt-5.6-terra`, configurable via `OPENROUTER_MODEL`) through [OpenRouter](https://openrouter.ai) using the Vercel AI SDK (`ai` + `@openrouter/ai-sdk-provider`), in two places:
+
+1. **Weave** (`POST /api/weave`) — the onboarding brain-dump. Your messy sentence goes to GPT-5.6 with a zod-enforced structured-output schema (`generateObject`) and comes back as a typed map: interests with cluster (`learn`/`craft`/`body`/`other`), energy (1–3), priority (1–3), a short "whisper" label, plus suggested edges between interests that feed each other. The canvas lays the nodes out grouped by cluster and draws the suggested connections.
+2. **Suggest next step** (`POST /api/suggest`) — the "✦ suggest with AI" button in an interest's detail view sends the interest, its goal, and recent session notes to GPT-5.6, which replies with one tiny, verb-first next step.
+
+**Graceful degradation:** both routes return `503` when `OPENROUTER_API_KEY` is absent, and the client falls back to the original local heuristics (regex sentence splitting + keyword grouping for weave; a keyword→step map for suggestions). The app is fully usable offline — the AI just makes the map and the steps meaningfully smarter. Data stays in localStorage; only the text you weave and the interest you ask a step for are sent to the API.
 
 ## Structure
 
