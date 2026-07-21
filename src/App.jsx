@@ -11,6 +11,7 @@ import FocusOverlay from './ui/FocusOverlay';
 import Onboarding from './ui/Onboarding';
 import RouteMap from './ui/RouteMap';
 import { canvasDocumentFromState, normalizeCanvasDocument } from './lib/canvas-document';
+import { getSupabaseBrowserClient } from './lib/supabase/client';
 
 export default class App extends React.Component {
   constructor(props) {
@@ -69,6 +70,7 @@ export default class App extends React.Component {
       focusOpen:false, focusMinimized:false, focusNodeId:null, focusTotal:1800, focusLeft:1800, focusRunning:false, focusDone:false,
       stepDraft:'', aiBusy:false,
       routeMapOpenId:null, routeDraftBusy:false, routeDraftError:'', routeAddParent:null, routeAddLabel:'', routeAddType:'task',
+      routeMaterialsOpen:false, routeMaterialBusy:false, routeMaterialError:'',
       adding:false, addX:0, addY:0, newLabel:'', newPriority:2,
       dumpOpen:false, dumpText:'',
       phase:null,               // 'menu' | 'filter'
@@ -87,7 +89,12 @@ export default class App extends React.Component {
     const direction=typeof n.direction==='string'?n.direction:(typeof n.goal==='string'?n.goal:'');
     const directionState=['directed','open','unclear'].includes(n.directionState)?n.directionState:(direction?'directed':'unclear');
     const season=['active','warm','resting','harvested','released'].includes(n.season)?n.season:'active';
-    return { ...n, posture, directionState, direction, currentPosition:typeof n.currentPosition==='string'?n.currentPosition:'', season, calling:Math.min(3,Math.max(1,n.calling||n.priority||2)), resumeCue:typeof n.resumeCue==='string'?n.resumeCue:'', routeMap:n.routeMap&&Array.isArray(n.routeMap.nodes)&&Array.isArray(n.routeMap.edges)?n.routeMap:null };
+    const materials=Array.isArray(n.materials)?n.materials.slice(0,12).map(material=>({
+      id:String(material?.id||'').slice(0,80),type:['note','link','pdf','image'].includes(material?.type)?material.type:'note',title:String(material?.title||'Untitled source').slice(0,100),summary:String(material?.summary||'').slice(0,700),
+      excerpts:Array.isArray(material?.excerpts)?material.excerpts.slice(0,6).map(value=>String(value||'').slice(0,420)).filter(Boolean):[],sourceUrl:typeof material?.sourceUrl==='string'?material.sourceUrl.slice(0,2048):'',storagePath:typeof material?.storagePath==='string'?material.storagePath.slice(0,600):'',
+      fileName:typeof material?.fileName==='string'?material.fileName.slice(0,180):'',mimeType:typeof material?.mimeType==='string'?material.mimeType.slice(0,100):'',size:Math.max(0,Number(material?.size)||0),enabled:material?.enabled!==false,createdAt:Number(material?.createdAt)||0,
+    })).filter(material=>material.id):[];
+    return { ...n, posture, directionState, direction, currentPosition:typeof n.currentPosition==='string'?n.currentPosition:'', season, calling:Math.min(3,Math.max(1,n.calling||n.priority||2)), resumeCue:typeof n.resumeCue==='string'?n.resumeCue:'', materials, routeMap:n.routeMap&&Array.isArray(n.routeMap.nodes)&&Array.isArray(n.routeMap.edges)?n.routeMap:null };
   }
   applyCloudDocument(document){
     const value=normalizeCanvasDocument(document);
@@ -101,7 +108,7 @@ export default class App extends React.Component {
       emptyFrames:value.groups.emptyFrames,
       labelOverrides:value.groups.labelOverrides,
       showOnboarding:nodes.length===0,
-      selectedId:null,selectedIds:[],expandedId:null,routeMapOpenId:null,
+      selectedId:null,selectedIds:[],expandedId:null,routeMapOpenId:null,routeMaterialsOpen:false,routeMaterialBusy:false,routeMaterialError:'',
       phase:null,resultOpen:false,logOpen:false,routeAddParent:null,
     },()=>this.applyRoute(this.props.pathname));
   }
@@ -213,6 +220,7 @@ export default class App extends React.Component {
       return;
     }
     if (e.key === 'Escape') {
+      if (s.routeMaterialsOpen) { this.closeRouteMaterials(); return; }
       if (s.routeMapOpenId) { this.closeRouteMap(); return; }
       if (s.logOpen) { this.closeLog(); return; }
       if (s.expandedId) { this.closeExpanded(); return; }
@@ -285,7 +293,7 @@ export default class App extends React.Component {
     if(view.id&&!node){ this.go('/canvas',true); return; }
     if(this._spin){ clearInterval(this._spin); this._spin=null; }
     if(view.kind!=='decide-result')this._decisionRequest++;
-    const cleared={selectedId:null,selectedIds:[],expandedId:null,routeMapOpenId:null,phase:null,logOpen:false,routeAddParent:null,routeAddLabel:'',routeDraftError:'',spinning:false,spinId:null};
+    const cleared={selectedId:null,selectedIds:[],expandedId:null,routeMapOpenId:null,routeMaterialsOpen:false,routeMaterialBusy:false,routeMaterialError:'',phase:null,logOpen:false,routeAddParent:null,routeAddLabel:'',routeDraftError:'',spinning:false,spinId:null};
     if(view.kind==='interest'){
       this.setState({...cleared,selectedId:view.id,selectedIds:[view.id],resultOpen:false});
       return;
@@ -372,11 +380,83 @@ export default class App extends React.Component {
     let routeMap=n.routeMap;
     if(!routeMap){ this.pushHistory(); routeMap=this.makeRouteShell(n); }
     const nodes=(routeMap.nodes||[]).map(x=>x.type==='origin'?{...x,label:n.currentPosition||x.label||'Where you are today'}:x.type==='destination'?{...x,label:n.directionState==='open'?'Keep the road open':(n.direction||x.label||'Choose a direction')}:x);
-    this.setState(s=>({nodes:s.nodes.map(x=>x.id===id?{...x,routeMap:{...routeMap,nodes}}:x),routeMapOpenId:id,selectedId:null,routeDraftError:'',routeAddParent:null,routeAddLabel:''}));
+    this.setState(s=>({nodes:s.nodes.map(x=>x.id===id?{...x,routeMap:{...routeMap,nodes}}:x),routeMapOpenId:id,selectedId:null,routeDraftError:'',routeAddParent:null,routeAddLabel:'',routeMaterialsOpen:false,routeMaterialError:''}));
     this.go(this.interestPath(id,'route'));
   };
   openSelectedRoute=()=>{ const id=this.state.selectedId; if(id)this.openRouteMap(id); };
-  closeRouteMap=()=>{ const id=this.state.routeMapOpenId; this.setState({routeMapOpenId:null,routeAddParent:null,routeAddLabel:'',routeDraftError:'',selectedId:id,selectedIds:id?[id]:[]}); this.go(id?this.interestPath(id):'/canvas'); };
+  closeRouteMap=()=>{ const id=this.state.routeMapOpenId; this.setState({routeMapOpenId:null,routeAddParent:null,routeAddLabel:'',routeDraftError:'',routeMaterialsOpen:false,routeMaterialBusy:false,routeMaterialError:'',selectedId:id,selectedIds:id?[id]:[]}); this.go(id?this.interestPath(id):'/canvas'); };
+  openRouteMaterials=()=>this.setState({routeMaterialsOpen:true,routeMaterialError:''});
+  closeRouteMaterials=()=>this.setState({routeMaterialsOpen:false,routeMaterialError:''});
+  routeMaterialId=()=>`mat_${typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)}`;
+  addMaterialReference=(material)=>new Promise(resolve=>{
+    const interestId=this.state.routeMapOpenId;
+    if(!interestId){resolve(false);return;}
+    let added=false;
+    this.pushHistory();
+    this.setState(s=>({nodes:s.nodes.map(n=>{
+      if(n.id!==interestId)return n;
+      const materials=Array.isArray(n.materials)?n.materials:[];
+      if(materials.length>=12)return n;
+      added=true;return {...n,materials:[...materials,material]};
+    }),routeMaterialError:added?'':'too_many_materials'}),()=>resolve(added));
+  });
+  addRouteNoteMaterial=async(value)=>{
+    const text=String(value||'').trim().slice(0,6000);if(!text)return false;
+    if(((this.state.nodes.find(n=>n.id===this.state.routeMapOpenId)?.materials)||[]).length>=12){this.setState({routeMaterialError:'too_many_materials'});return false;}
+    const firstLine=text.split(/\n/).map(line=>line.trim()).find(Boolean)||'Private note';
+    const excerpts=[];for(let i=0;i<Math.min(text.length,1260);i+=420)excerpts.push(text.slice(i,i+420));
+    return this.addMaterialReference({id:this.routeMaterialId(),type:'note',title:firstLine.slice(0,72),summary:text.slice(0,700),excerpts,sourceUrl:'',storagePath:'',fileName:'',mimeType:'text/plain',size:text.length,enabled:true,createdAt:Date.now()});
+  };
+  materialApiError=async(response)=>{try{return (await response.json())?.error||'extraction_failed';}catch{return 'extraction_failed';}};
+  addRouteLinkMaterial=async(value)=>{
+    const url=String(value||'').trim();if(!url||this.state.routeMaterialBusy)return false;
+    const current=this.state.nodes.find(n=>n.id===this.state.routeMapOpenId);if((current?.materials||[]).length>=12){this.setState({routeMaterialError:'too_many_materials'});return false;}
+    this.setState({routeMaterialBusy:true,routeMaterialError:''});
+    try{
+      const response=await fetch('/api/materials/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'link',url})});
+      if(!response.ok)throw new Error(await this.materialApiError(response));
+      const data=await response.json();
+      const added=await this.addMaterialReference({id:this.routeMaterialId(),type:'link',title:String(data.title||new URL(data.sourceUrl||url).hostname).slice(0,100),summary:String(data.summary||'').slice(0,700),excerpts:(data.excerpts||[]).slice(0,6).map(x=>String(x).slice(0,420)),sourceUrl:String(data.sourceUrl||url).slice(0,2048),storagePath:'',fileName:'',mimeType:'text/html',size:0,enabled:true,createdAt:Date.now()});
+      this.setState({routeMaterialBusy:false});return added;
+    }catch(error){this.setState({routeMaterialBusy:false,routeMaterialError:error.message||'extraction_failed'});return false;}
+  };
+  addRouteFileMaterial=async(file)=>{
+    if(!file||this.state.routeMaterialBusy)return false;
+    const userId=this.props.syncUserId;if(!userId){this.setState({routeMaterialError:'sign_in_required'});return false;}
+    const current=this.state.nodes.find(n=>n.id===this.state.routeMapOpenId);if((current?.materials||[]).length>=12){this.setState({routeMaterialError:'too_many_materials'});return false;}
+    const allowed=new Set(['application/pdf','image/jpeg','image/png','image/webp']);
+    if(!allowed.has(file.type)){this.setState({routeMaterialError:'unsupported_file'});return false;}
+    if(!file.size||file.size>6*1024*1024){this.setState({routeMaterialError:'file_too_large'});return false;}
+    this.setState({routeMaterialBusy:true,routeMaterialError:''});
+    const id=this.routeMaterialId(),interestId=this.state.routeMapOpenId;
+    try{
+      const form=new FormData();form.append('file',file);
+      const response=await fetch('/api/materials/extract',{method:'POST',body:form});
+      if(!response.ok)throw new Error(await this.materialApiError(response));
+      const data=await response.json();
+      const safeName=file.name.normalize('NFKD').replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,120)||'material';
+      const safeInterest=String(interestId).replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,100);
+      const storagePath=`${userId}/${safeInterest}/${id}/${safeName}`;
+      const supabase=getSupabaseBrowserClient();
+      const {error:uploadError}=await supabase.storage.from('skein-route-materials').upload(storagePath,file,{contentType:file.type,upsert:false});
+      if(uploadError)throw new Error('upload_failed');
+      const type=file.type==='application/pdf'?'pdf':'image';
+      const added=await this.addMaterialReference({id,type,title:String(data.title||file.name).slice(0,100),summary:String(data.summary||'').slice(0,700),excerpts:(data.excerpts||[]).slice(0,6).map(x=>String(x).slice(0,420)),sourceUrl:'',storagePath,fileName:file.name.slice(0,180),mimeType:file.type,size:file.size,enabled:true,createdAt:Date.now()});
+      if(!added)await supabase.storage.from('skein-route-materials').remove([storagePath]);
+      this.setState({routeMaterialBusy:false});return added;
+    }catch(error){this.setState({routeMaterialBusy:false,routeMaterialError:error.message||'extraction_failed'});return false;}
+  };
+  toggleRouteMaterial=(materialId)=>{
+    const interestId=this.state.routeMapOpenId;if(!interestId)return;
+    const interest=this.state.nodes.find(n=>n.id===interestId),material=(interest?.materials||[]).find(item=>item.id===materialId);if(!material)return;
+    if(!material.enabled&&(interest.materials||[]).filter(item=>item.enabled!==false).length>=8){this.setState({routeMaterialError:'too_many_active'});return;}
+    this.pushHistory();this.setState(s=>({nodes:s.nodes.map(n=>n.id===interestId?{...n,materials:(n.materials||[]).map(item=>item.id===materialId?{...item,enabled:!item.enabled}:item)}:n),routeMaterialError:''}));
+  };
+  removeRouteMaterial=async(materialId)=>{
+    const interestId=this.state.routeMapOpenId,interest=this.state.nodes.find(n=>n.id===interestId),material=(interest?.materials||[]).find(item=>item.id===materialId);if(!material)return;
+    if(material.storagePath){const supabase=getSupabaseBrowserClient();const {error}=await supabase.storage.from('skein-route-materials').remove([material.storagePath]);if(error){this.setState({routeMaterialError:'delete_failed'});return;}}
+    this.pushHistory();this.setState(s=>({nodes:s.nodes.map(n=>n.id===interestId?{...n,materials:(n.materials||[]).filter(item=>item.id!==materialId)}:n),routeMaterialError:''}));
+  };
   beginRouteAdd=(parentId)=>this.setState({routeAddParent:parentId,routeAddLabel:'',routeAddType:'task'});
   cancelRouteAdd=()=>this.setState({routeAddParent:null,routeAddLabel:''});
   onRouteAddLabel=(e)=>this.setState({routeAddLabel:e.target.value});
@@ -419,14 +499,16 @@ export default class App extends React.Component {
       const recentActivity=(n.sessions||[]).slice(-6).map(x=>x.note).filter(Boolean);
       const savedMoves=(n.steps||[]).filter(x=>!x.done).map(x=>x.text).slice(0,6);
       const existingRoute=n.routeMap?{summary:n.routeMap.summary||'',nodes:(n.routeMap.nodes||[]).filter(x=>!['origin','destination'].includes(x.type)).map(x=>({type:x.type,label:x.label,done:!!x.done})).slice(0,10)}:null;
-      const res=await fetch('/api/route-map',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label:n.label,posture:n.posture,directionState:n.directionState,direction:n.direction,currentPosition:n.currentPosition,notes:n.note||'',resumeCue:n.resumeCue||'',recentActivity,savedMoves,existingRoute})});
+      const materials=(n.materials||[]).filter(material=>material.enabled!==false).slice(0,8).map(material=>({id:material.id,type:material.type,title:material.title,summary:material.summary,excerpts:material.excerpts,sourceUrl:material.sourceUrl||''}));
+      const validMaterialIds=new Set(materials.map(material=>material.id));
+      const res=await fetch('/api/route-map',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label:n.label,posture:n.posture,directionState:n.directionState,direction:n.direction,currentPosition:n.currentPosition,notes:n.note||'',resumeCue:n.resumeCue||'',recentActivity,savedMoves,materials,existingRoute})});
       if(!res.ok)throw new Error('route_failed');
       const data=await res.json();
       const shell=this.makeRouteShell(n), stamp=Date.now(), keyToId={start:shell.nodes[0].id,goal:shell.nodes[1].id};
       const destinationLabel=(n.direction||'').trim().toLowerCase();
       const seenLabels=[];
       const normalizeRouteLabel=value=>String(value||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\b(a|an|the|to|and|or|of|for|with)\b/g,' ').replace(/\s+/g,' ').trim();
-      const mids=(data.nodes||[]).slice(0,10).map((x,i)=>{ const key=String(x.key||('step_'+i)).replace(/[^a-z0-9_]/gi,'_').toLowerCase(); const rid='rn'+stamp+i; keyToId[key]=rid; return {id:rid,key,type:x.type||'milestone',label:String(x.label||'Untitled step').slice(0,90),description:String(x.description||'').slice(0,180),stage:Math.min(4,Math.max(1,Math.round(x.stage)||1)),order:Math.max(0,Math.round(x.order)||0),doneWhen:String(x.doneWhen||'').slice(0,140),durationMinutes:x.durationMinutes||null,done:false,source:'ai_suggested'}; }).filter(x=>{
+      const mids=(data.nodes||[]).slice(0,10).map((x,i)=>{ const key=String(x.key||('step_'+i)).replace(/[^a-z0-9_]/gi,'_').toLowerCase(); const rid='rn'+stamp+i; keyToId[key]=rid; return {id:rid,key,type:x.type||'milestone',label:String(x.label||'Untitled step').slice(0,90),description:String(x.description||'').slice(0,180),stage:Math.min(4,Math.max(1,Math.round(x.stage)||1)),order:Math.max(0,Math.round(x.order)||0),doneWhen:String(x.doneWhen||'').slice(0,140),durationMinutes:x.durationMinutes||null,sourceMaterialIds:(Array.isArray(x.sourceIds)?x.sourceIds:[]).map(value=>String(value)).filter(value=>validMaterialIds.has(value)).slice(0,3),done:false,source:'ai_suggested'}; }).filter(x=>{
         const normalized=normalizeRouteLabel(x.label);
         if(!normalized||normalizeRouteLabel(destinationLabel)===normalized||seenLabels.some(label=>label===normalized||(label.length>18&&normalized.length>18&&(label.includes(normalized)||normalized.includes(label)))))return false;
         seenLabels.push(normalized);return true;
@@ -439,7 +521,7 @@ export default class App extends React.Component {
       }
       this.pushHistory();
       const assumptions=(Array.isArray(data.assumptions)?data.assumptions:[]).map(x=>String(x||'').trim()).filter(x=>x&&x.length<=240&&!/[{}\[\]]|(?:nodes|doneWhen|description|durationMinutes)['":]/i.test(x)).slice(0,4);
-      const routeMap={...shell,status:'draft',summary:String(data.summary||''),assumptions,nodes:[shell.nodes[0],...mids,shell.nodes[1]],edges};
+      const routeMap={...shell,status:'draft',summary:String(data.summary||''),assumptions,contextMaterialIds:materials.map(material=>material.id),nodes:[shell.nodes[0],...mids,shell.nodes[1]],edges};
       this.setState(s=>({routeDraftBusy:false,nodes:s.nodes.map(x=>x.id===id?{...x,routeMap}:x)}));
     }catch(e){ this.setState({routeDraftBusy:false,routeDraftError:'Could not draft the route. Keep shaping it by hand, or try again.'}); }
   };
@@ -1070,13 +1152,17 @@ export default class App extends React.Component {
     let route=null;
     if(routeInterest&&routeInterest.routeMap){
       const map=routeInterest.routeMap;
+      const materialById=Object.fromEntries((routeInterest.materials||[]).map(material=>[material.id,material]));
       const blockingRelationships=new Set(['requires','unlocks','produces']);
       const routeNodes=map.nodes.map(n=>{
         const blockedBy=(map.edges||[]).filter(e=>e.to===n.id&&blockingRelationships.has(e.relationship||'unlocks')).map(e=>map.nodes.find(x=>x.id===e.from)).filter(x=>x&&!x.done).map(x=>x.label);
-        return {...n,blockedBy,reachable:this.routeReachable(map,n),onToggle:()=>this.toggleRouteNode(n.id),onAdd:()=>this.beginRouteAdd(n.id),onMoveStart:this.beginRouteNodeMove,onMove:(x,y)=>this.moveRouteNode(n.id,x,y)};
+        const sourceMaterialIds=(n.sourceMaterialIds||[]).filter(id=>materialById[id]);
+        return {...n,sourceMaterialIds,sourceTitles:sourceMaterialIds.map(id=>materialById[id].title),blockedBy,reachable:this.routeReachable(map,n),onToggle:()=>this.toggleRouteNode(n.id),onAdd:()=>this.beginRouteAdd(n.id),onMoveStart:this.beginRouteNodeMove,onMove:(x,y)=>this.moveRouteNode(n.id,x,y)};
       });
       const parent=map.nodes.find(n=>n.id===s.routeAddParent);
-      route={interest:routeInterest,map:{...map,nodes:routeNodes},busy:s.routeDraftBusy,error:s.routeDraftError,canTidy:map.nodes.some(n=>Number.isFinite(n.x)||Number.isFinite(n.y)),onClose:this.closeRouteMap,onGenerate:this.generateRouteDraft,onAccept:this.acceptRouteDraft,onAutoArrange:this.autoArrangeRoute,onBeginAdd:this.beginRouteAdd,addOpen:!!s.routeAddParent,addParentLabel:parent?parent.label:'',addLabel:s.routeAddLabel,onAddLabel:this.onRouteAddLabel,addType:s.routeAddType,typeChips:['task','milestone','capability','resource','experiment','decision'].map(type=>({type,label:type,onSelect:()=>this.setRouteAddType(type),active:s.routeAddType===type})),onAddNode:this.addRouteNode,onCancelAdd:this.cancelRouteAdd};
+      const materials=routeInterest.materials||[];
+      route={interest:routeInterest,map:{...map,nodes:routeNodes},busy:s.routeDraftBusy,error:s.routeDraftError,canTidy:map.nodes.some(n=>Number.isFinite(n.x)||Number.isFinite(n.y)),onClose:this.closeRouteMap,onGenerate:this.generateRouteDraft,onAccept:this.acceptRouteDraft,onAutoArrange:this.autoArrangeRoute,onBeginAdd:this.beginRouteAdd,addOpen:!!s.routeAddParent,addParentLabel:parent?parent.label:'',addLabel:s.routeAddLabel,onAddLabel:this.onRouteAddLabel,addType:s.routeAddType,typeChips:['task','milestone','capability','resource','experiment','decision'].map(type=>({type,label:type,onSelect:()=>this.setRouteAddType(type),active:s.routeAddType===type})),onAddNode:this.addRouteNode,onCancelAdd:this.cancelRouteAdd,
+        materials,activeMaterialCount:materials.filter(material=>material.enabled!==false).slice(0,8).length,materialsOpen:s.routeMaterialsOpen,materialBusy:s.routeMaterialBusy,materialError:s.routeMaterialError,canUploadFiles:!!this.props.syncUserId,onOpenMaterials:this.openRouteMaterials,onCloseMaterials:this.closeRouteMaterials,onAddNote:this.addRouteNoteMaterial,onAddLink:this.addRouteLinkMaterial,onAddFile:this.addRouteFileMaterial,onToggleMaterial:this.toggleRouteMaterial,onRemoveMaterial:this.removeRouteMaterial};
     }
     const chosen = byId[s.chosenId];
     const touchedNodes = s.nodes.filter(n=>n.lastTouched&&!['resting','harvested','released'].includes(n.season));

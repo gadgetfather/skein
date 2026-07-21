@@ -42,6 +42,7 @@ export default function CanvasShell({ children }) {
         cloudDocument={cloudLoad?.document || null}
         cloudRevision={cloudLoad?.revision || null}
         onDocumentChange={sync.onDocumentChange}
+        syncUserId={sync.user?.id || null}
       />
       <AccountSync sync={sync} placement={accountPlacement} />
       {children}
