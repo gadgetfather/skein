@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React from 'react';
 import { AnimatePresence } from 'motion/react';
 import Toolbar from './ui/Toolbar';
@@ -60,12 +61,12 @@ export default class App extends React.Component {
     this.state = {
       nodes: initial,
       edges: firstRun ? [] : (Array.isArray(savedE) ? savedE : seedEdges.map(([a,b])=>({a,b}))),
-      showOnboarding: firstRun, onbFading:false, hIndex:Math.floor(Math.random()*5), hOpacity:1, inputVal:'', listening:false, weaving:false, micUnsupported:false,
+      showOnboarding: firstRun, onbFading:false, hIndex:Math.floor(Math.random()*5), hOpacity:1, headlinePaused:false, inputVal:'', listening:false, weaving:false, micUnsupported:false,
       customGroups: Array.isArray(savedG.customGroups)? savedG.customGroups : [],
       emptyFrames: savedG.emptyFrames || {},
       labelOverrides: savedG.labelOverrides || {},
       editingGroup:null, groupName:'',
-      connectMode:false, pendingConnect:null, rewire:null,
+      connectMode:false, pendingConnect:null, rewire:null, connectTargetId:null, connectionNote:'',
       tool:'select', panX:0, panY:0, zoom:1, spacePan:false, panning:false,
       selectedId:null, selectedIds:[],
       expandedId:null, logOpen:false, logDur:25, logNote:'', logMood:'ok', pomoSec:1500, pomoRunning:false,
@@ -118,16 +119,17 @@ export default class App extends React.Component {
   componentDidMount(){ this._onKey = (e)=>this.handleKey(e); window.addEventListener('keydown', this._onKey);
     this._onKeyUp = (e)=>this.handleKeyUp(e); window.addEventListener('keyup', this._onKeyUp);
     this._onBlur = ()=>{ if(this._spaceHeld){ this._spaceHeld=false; this.setState({ spacePan:false, panning:false }); } }; window.addEventListener('blur', this._onBlur);
-    this._ht = setInterval(()=>{ if(!this.state.showOnboarding) return; this.setState({hOpacity:0}); setTimeout(()=>this.setState(st=>({hIndex:(st.hIndex+1)%this.headlines.length, hOpacity:1})),420); }, 4200);
+    this._ht = setInterval(()=>{ if(!this.state.showOnboarding||this.state.headlinePaused) return; this.setState({hOpacity:0}); this._headlineSwap=setTimeout(()=>this.setState(st=>({hIndex:(st.hIndex+1)%this.headlines.length, hOpacity:1})),320); }, 4200);
     this.applyRoute(this.props.pathname);
   }
-  componentWillUnmount(){ if(this._spin) clearInterval(this._spin); if(this._ht) clearInterval(this._ht); if(this._micNote) clearTimeout(this._micNote); if(this._walkthroughTimer) clearTimeout(this._walkthroughTimer); if(this._rec){ try{ this._rec.stop(); }catch(e){} } if(this._pomo) clearInterval(this._pomo); if(this._focus) clearInterval(this._focus); if(this._onKey) window.removeEventListener('keydown', this._onKey); if(this._onKeyUp) window.removeEventListener('keyup', this._onKeyUp); if(this._onBlur) window.removeEventListener('blur', this._onBlur); }
+  componentWillUnmount(){ if(this._spin) clearInterval(this._spin); if(this._ht) clearInterval(this._ht); if(this._headlineSwap) clearTimeout(this._headlineSwap); if(this._connectionTimer) clearTimeout(this._connectionTimer); if(this._micNote) clearTimeout(this._micNote); if(this._walkthroughTimer) clearTimeout(this._walkthroughTimer); if(this._rec){ try{ this._rec.stop(); }catch(e){} } if(this._pomo) clearInterval(this._pomo); if(this._focus) clearInterval(this._focus); if(this._onKey) window.removeEventListener('keydown', this._onKey); if(this._onKeyUp) window.removeEventListener('keyup', this._onKeyUp); if(this._onBlur) window.removeEventListener('blur', this._onBlur); }
   parseInterests(text){
     let t=(text||'').replace(/^\s*(i\s+want\s+to|i'd\s+like\s+to|i\s+wanna|help\s+me|i\s+need\s+to|i\s+keep\s+meaning\s+to)\s+/i,'');
     const parts=t.split(/\s*(?:,|;|\band\b|&|\+|\/|\n|\bplus\b)\s*/i).map(p=>p.trim()).filter(Boolean);
     return parts.map(p=>p.replace(/^(finally|also|maybe|really|to)\s+/i,'').replace(/[.!?]+$/,'').trim()).filter(p=>p.length>1).slice(0,10);
   }
   onbInput=(e)=>this.setState({inputVal:e.target.value});
+  onbFocus=()=>{ if(this._headlineSwap)clearTimeout(this._headlineSwap); this.setState({headlinePaused:true,hOpacity:1}); };
   onbKey=(e)=>{ if(e.key==='Enter') this.weave(); };
   fillExample=(full)=>this.setState({inputVal:full});
   toggleMic=()=>{
@@ -200,6 +202,19 @@ export default class App extends React.Component {
         this.scheduleFirstWalkthrough();
       });
     },420);
+  };
+  openInputScreen=()=>{
+    this.stopMic();
+    if(this._spin){clearInterval(this._spin);this._spin=null;}
+    if(this._focus){clearInterval(this._focus);this._focus=null;}
+    this._decisionRequest++;
+    this.setState({
+      showOnboarding:true,onbFading:false,inputVal:'',weaving:false,headlinePaused:false,hOpacity:1,
+      selectedId:null,selectedIds:[],expandedId:null,routeMapOpenId:null,routeMaterialsOpen:false,
+      phase:null,resultOpen:false,spinning:false,spinId:null,dumpOpen:false,adding:false,
+      connectMode:false,pendingConnect:null,rewire:null,connectTargetId:null,connectionNote:'',
+      focusOpen:false,focusMinimized:false,focusRunning:false,focusDone:false,walkthroughStep:-1,
+    },()=>this.go('/canvas'));
   };
 
   scheduleFirstWalkthrough=()=>{
@@ -281,9 +296,7 @@ export default class App extends React.Component {
     if (e.key==='Delete' || e.key==='Backspace') { e.preventDefault(); this.deleteSel(); return; }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.toLowerCase();
-    if (k==='v' || k==='1') this.selectTool();
-    else if (k==='h' || k==='2') this.handTool();
-    else if (k==='t') this.addThoughtCenter();
+    if (k==='t') this.addThoughtCenter();
     else if (k==='b') this.toggleDump();
     else if (k==='c') this.toggleConnect();
     else if (k==='g') this.autoGroup();
@@ -378,10 +391,10 @@ export default class App extends React.Component {
   onRenameInput = (e)=>{ const v=e.target.value; this.setState(s=>({nodes:s.nodes.map(n=>n.id===s.selectedId?{...n,label:v}:n)})); };
   setEnergy = (id,k)=> { this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,energy:k}:n)})); };
   deleteSelected = ()=> { this.pushHistory(); this.setState(s=>({nodes:s.nodes.filter(n=>n.id!==s.selectedId), edges:s.edges.filter(e=>e.a!==s.selectedId&&e.b!==s.selectedId), chosenId: s.chosenId===s.selectedId?null:s.chosenId, selectedId:null, selectedIds:[] })); this.go('/canvas'); };
+  deleteNode = (id)=> { if(!id)return; this.pushHistory(); this.setState(s=>({nodes:s.nodes.filter(n=>n.id!==id),edges:s.edges.filter(e=>e.a!==id&&e.b!==id),chosenId:s.chosenId===id?null:s.chosenId,selectedId:s.selectedId===id?null:s.selectedId,selectedIds:(s.selectedIds||[]).filter(value=>value!==id)})); };
   setCluster = (id,k)=> { this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,cluster:k}:n)})); };
   setPriority = (id,p)=> { this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,priority:p}:n)})); };
   setNewPriority = (p)=> this.setState({ newPriority:p });
-  onMetaInput = (e)=>{ const v=e.target.value; this.setState(s=>({nodes:s.nodes.map(n=>n.id===s.selectedId?{...n,meta:v}:n)})); };
   onNoteInput = (e)=>{ const v=e.target.value; this.setState(s=>({nodes:s.nodes.map(n=>n.id===s.selectedId?{...n,note:v}:n)})); };
   setPosture = (id,posture)=>{ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,posture}:n)})); };
   setDirectionState = (id,directionState)=>{ this.pushHistory(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,directionState}:n)})); };
@@ -676,25 +689,27 @@ export default class App extends React.Component {
   startPomo=()=>{ if(this._pomo)return; this.setState(s=>({pomoRunning:true, pomoSec:s.pomoSec||1500})); this._pomo=setInterval(()=>{ this.setState(s=>{ const t=(s.pomoSec||0)-1; if(t<=0){ clearInterval(this._pomo); this._pomo=null; return {pomoSec:0,pomoRunning:false}; } return {pomoSec:t}; }); },1000); };
   pausePomo=()=>{ if(this._pomo){clearInterval(this._pomo);this._pomo=null;} this.setState({pomoRunning:false}); };
   resetPomo=()=>{ if(this._pomo){clearInterval(this._pomo);this._pomo=null;} this.setState({pomoSec:1500,pomoRunning:false}); };
-  toggleConnect = ()=>{ this.setState(s=>({ connectMode:!s.connectMode, pendingConnect:null, selectedId:null, selectedIds:[] })); this.go('/canvas'); };
-  handleConnectClick = (id)=> this.setState(s=>{
-    if (s.pendingConnect==null) return { pendingConnect:id };
-    if (s.pendingConnect===id) return { pendingConnect:null };
-    const a=s.pendingConnect, b=id;
-    const exists=s.edges.some(e=>(e.a===a&&e.b===b)||(e.a===b&&e.b===a));
-    return { edges: exists? s.edges : [...s.edges,{a,b}], pendingConnect:null };
-  });
+  showConnectionNote=(message)=>{ if(this._connectionTimer)clearTimeout(this._connectionTimer); this.setState({connectionNote:message}); this._connectionTimer=setTimeout(()=>this.setState({connectionNote:''}),1500); };
+  toggleConnect = ()=>{ this.setState(s=>({ connectMode:!s.connectMode, pendingConnect:null, connectTargetId:null, connectionNote:'', selectedId:null, selectedIds:[] })); this.go('/canvas'); };
+  handleConnectClick = (id)=> {
+    const pending=this.state.pendingConnect;
+    if(pending==null){this.setState({pendingConnect:id});return;}
+    if(pending===id){this.setState({pendingConnect:null});return;}
+    const exists=this.state.edges.some(e=>(e.a===pending&&e.b===id)||(e.a===id&&e.b===pending));
+    if(!exists){this.pushHistory();this.setState(s=>({edges:[...s.edges,{a:pending,b:id}],pendingConnect:null}));this.showConnectionNote('thoughts connected');}
+    else{this.setState({pendingConnect:null});this.showConnectionNote('already connected');}
+  };
   removeEdge = (a,b)=> { this.pushHistory(); this.setState(s=>({ edges:s.edges.filter(e=>!((e.a===a&&e.b===b)||(e.a===b&&e.b===a))) })); };
   startConnectDrag = (e, id, px, py) => {
     e.stopPropagation();
     const r = this.canvasEl.getBoundingClientRect();
-    const move=(ev)=>{ this._justDragged=true; const mx=(ev.clientX-r.left-this.state.panX)/this.state.zoom, my=(ev.clientY-r.top-this.state.panY)/this.state.zoom; this.setState({ rewire:{ x1:px, y1:py, x2:mx, y2:my } }); };
+    const move=(ev)=>{ this._justDragged=true; const mx=(ev.clientX-r.left-this.state.panX)/this.state.zoom, my=(ev.clientY-r.top-this.state.panY)/this.state.zoom; const target=this.state.nodes.find(n=>n.id!==id&&mx>=n.x&&mx<=n.x+this.NW&&my>=n.y&&my<=n.y+96); this.setState({ rewire:{ x1:px, y1:py, x2:mx, y2:my }, connectTargetId:target?.id||null }); };
     const up=(ev)=>{
       window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up);
       const mx=(ev.clientX-r.left-this.state.panX)/this.state.zoom, my=(ev.clientY-r.top-this.state.panY)/this.state.zoom;
       const target=this.state.nodes.find(n=> mx>=n.x && mx<=n.x+this.NW && my>=n.y && my<=n.y+96);
-      this.setState({ rewire:null });
-      if (target && target.id!==id) { this.pushHistory(); this.setState(s=>{ const ex=s.edges.some(ed=>(ed.a===id&&ed.b===target.id)||(ed.a===target.id&&ed.b===id)); return ex? {} : { edges:[...s.edges,{a:id,b:target.id}] }; }); }
+      this.setState({ rewire:null, connectTargetId:null });
+      if (target && target.id!==id) { const exists=this.state.edges.some(ed=>(ed.a===id&&ed.b===target.id)||(ed.a===target.id&&ed.b===id)); if(!exists){this.pushHistory();this.setState(s=>({edges:[...s.edges,{a:id,b:target.id}]}));this.showConnectionNote('thoughts connected');}else this.showConnectionNote('already connected'); }
       setTimeout(()=>{ this._justDragged=false; },60);
     };
     window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
@@ -784,9 +799,6 @@ export default class App extends React.Component {
     if (el) { this._wheelFn = (e) => this.onCanvasWheel(e); el.addEventListener('wheel', this._wheelFn, { passive: false }); }
   };
   setViewport = (el) => { this.viewportEl = el; };
-  setTool = (t) => this.setState({ tool:t, pendingConnect:null });
-  selectTool = () => this.setTool('select');
-  handTool = () => this.setTool('hand');
   zoomBy = (fac) => {
     const r=this.canvasEl&&this.canvasEl.getBoundingClientRect();
     const cx=r?r.width/2:500, cy=r?r.height/2:340;
@@ -828,22 +840,32 @@ export default class App extends React.Component {
     this.setState({zoom,panX,panY});
   };
   onCanvasPointerDown = (e) => {
-    if (this.state.tool !== 'hand' && !this._spaceHeld) return;
+    if (e.target !== this.canvasEl && e.target !== this.viewportEl) return;
+    if (this.state.connectMode) return;
+    if (this.state.tool !== 'select' && this.state.tool !== 'hand' && !this._spaceHeld) return;
     const sx=e.clientX, sy=e.clientY, bx=this.state.panX, by=this.state.panY;
     this.setState({ panning:true });
-    const move=(ev)=>{ this._justDragged=true; this.setState({ panX:bx+(ev.clientX-sx), panY:by+(ev.clientY-sy) }); };
-    const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up); this.setState({ panning:false }); setTimeout(()=>{ this._justDragged=false; },60); };
+    let moved=false;
+    const move=(ev)=>{ const dx=ev.clientX-sx,dy=ev.clientY-sy;if(!moved&&Math.abs(dx)<3&&Math.abs(dy)<3)return;moved=true;this._justDragged=true;this.setState({ panX:bx+dx, panY:by+dy }); };
+    const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up); this.setState({ panning:false }); if(moved)setTimeout(()=>{ this._justDragged=false; },60); };
     window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
   };
   focusAdd = (el) => { if(el) setTimeout(()=>el.focus(),0); };
 
-  // ---- add a thought by clicking canvas ----
+  // ---- empty-canvas interactions: drag pans, click clears, double-click adds ----
   onCanvasClick = (e) => {
     if (this._justDragged || this._spaceHeld) return;
     if (e.target !== this.canvasEl && e.target !== this.viewportEl) return;
     if (this.state.connectMode) { this.setState({ pendingConnect:null }); return; }
     if (this.state.tool !== 'select') return;
+    if (this.state.adding) { this.setState({adding:false,newLabel:''}); return; }
     if (this.state.selectedId || (this.state.selectedIds&&this.state.selectedIds.length)) { this.closePopover(); return; }
+    if(this.state.editingGroup)this.setState({editingGroup:null});
+  };
+  onCanvasDoubleClick = (e) => {
+    if(this._justDragged||this._spaceHeld||this.state.connectMode||this.state.tool!=='select')return;
+    if(e.target!==this.canvasEl&&e.target!==this.viewportEl)return;
+    e.preventDefault();
     const r = this.canvasEl.getBoundingClientRect();
     this.setState({ adding:true, addX: (e.clientX - r.left - this.state.panX)/this.state.zoom - 12, addY: (e.clientY - r.top - this.state.panY)/this.state.zoom - 12, newLabel:'', selectedId:null });
   };
@@ -922,7 +944,7 @@ export default class App extends React.Component {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
-      if (!moved) { this.beginRenameGroup(key); return; }
+      if (!moved) return;
       setTimeout(()=>{ this._justDragged = false; }, 60);
     };
     window.addEventListener('pointermove', move);
@@ -1110,18 +1132,21 @@ export default class App extends React.Component {
       const active = s.spinning && s.spinId === n.id;
       const selected = s.selectedId === n.id || (s.selectedIds && s.selectedIds.includes(n.id));
       const pending = s.pendingConnect === n.id;
+      const connectTarget = s.connectTargetId === n.id;
       let shadow = '2px 3px 0 rgba(58,64,69,.14)';
       if (active) shadow = '2px 3px 0 rgba(58,64,69,.14), 0 0 0 8px rgba(122,154,111,.28)';
       else if (chosen) shadow = '2px 3px 0 rgba(58,64,69,.14), 0 0 0 6px rgba(122,154,111,.20)';
+      else if (connectTarget) shadow = '3px 5px 0 rgba(58,64,69,.16), 0 0 0 7px rgba(122,154,111,.34)';
       else if (selected || pending) shadow = '2px 3px 0 rgba(58,64,69,.14), 0 0 0 4px rgba(122,154,111,.30)';
       const gcolor = this.groupColor(n.cluster);
       const directionBadge=n.directionState==='directed'?{icon:'↗',label:'directed'}:n.directionState==='open'?{icon:'∞',label:'open-ended'}:{icon:'?',label:'unclear'};
       return {
-        ...n, chosen, color:gcolor, directionBadge, tourTarget:n.id===tourNode?.id, routeCount:n.routeMap?(n.routeMap.nodes||[]).filter(x=>!['origin','destination'].includes(x.type)).length:0,
+        ...n, chosen, connectTarget, color:gcolor, directionBadge, tourTarget:n.id===tourNode?.id, routeCount:n.routeMap?(n.routeMap.nodes||[]).filter(x=>!['origin','destination'].includes(x.type)).length:0,
         shadow,
         anim: chosen && !s.spinning ? 'callPulse 3s ease-in-out infinite' : 'none',
         opacity:n.season==='resting'?.62:1,
         onDown: (e)=>this.startDrag(e, n.id),
+        onDelete: ()=>this.deleteNode(n.id),
         onExpand: ()=>this.openExpanded(n.id),
         dots: [1,2,3].map(k => ({ bg: k <= (n.energy||0) ? gcolor : '#cbd0d2' })),
       };
@@ -1138,13 +1163,14 @@ export default class App extends React.Component {
       const nx=-dy/dist, ny=dx/dist;
       const c1x=x1+dx/3+nx*off, c1y=y1+dy/3+ny*off;
       const c2x=x1+2*dx/3+nx*off, c2y=y1+2*dy/3+ny*off;
-      return { key:e.a+'~'+e.b, d:`M${x1} ${y1} C${c1x} ${c1y} ${c2x} ${c2y} ${x2} ${y2}`, onRemove:()=>this.removeEdge(e.a,e.b) };
+      const mx=(x1+3*c1x+3*c2x+x2)/8, my=(y1+3*c1y+3*c2y+y2)/8;
+      return { key:e.a+'~'+e.b, d:`M${x1} ${y1} C${c1x} ${c1y} ${c2x} ${c2y} ${x2} ${y2}`, mx, my, onRemove:()=>this.removeEdge(e.a,e.b) };
     });
     const ports=[];
     s.nodes.forEach(n=>{
       const px=n.x+77, py=n.y+48;
       const pts=[[px,n.y],[n.x+154,py],[px,n.y+96],[n.x,py]];
-      pts.forEach(([qx,qy])=>ports.push({ x:qx-5, y:qy-5, onDown:(e)=>this.startConnectDrag(e, n.id, qx, qy) }));
+      pts.forEach(([qx,qy])=>ports.push({ x:qx-9, y:qy-9, onDown:(e)=>this.startConnectDrag(e, n.id, qx, qy) }));
     });
 
     const allGroupKeys = [...new Set([ ...s.nodes.map(n=>n.cluster), ...s.customGroups.map(g=>g.key), ...Object.keys(s.emptyFrames) ])];
@@ -1180,7 +1206,7 @@ export default class App extends React.Component {
       const seasonLabels={active:'active',warm:'warm',resting:'resting'};
       const frontier=this.routeFrontierInfo(sel);
       selData = {
-        id:sel.id,label: sel.label, meta: sel.meta || '', note: sel.note || '', posture:sel.posture,directionState:sel.directionState,direction:sel.direction||'',currentPosition:sel.currentPosition||'',season:sel.season,
+        id:sel.id,label: sel.label, note: sel.note || '', posture:sel.posture,directionState:sel.directionState,direction:sel.direction||'',currentPosition:sel.currentPosition||'',season:sel.season,
         dots: [1,2,3].map(k => ({ bg: k <= (sel.energy||0) ? A : '#cbd0d2', onClick:()=>this.setEnergy(sel.id,k) })),
         clusterChips: clusterKeys.map(([k,lab]) => { const on = sel.cluster===k; const col=this.groupColor(k); return { key:k,label:lab,active:on,tone:col,onSelect:()=>this.setCluster(sel.id,k),bg:on?col:'#fbfbfa',color:on?'#fff':'#2b3034',border:on?col:'#b7bec1' }; }),
         postureChips:Object.keys(postureLabels).map(k=>{const on=sel.posture===k;return{label:postureLabels[k],onSelect:()=>this.setPosture(sel.id,k),bg:on?A:'#fbfbfa',color:on?'#fff':'#2b3034',border:on?A:'#b7bec1'};}),
@@ -1223,7 +1249,7 @@ export default class App extends React.Component {
     }
     return {
       selOpen: !!sel, sel: selData,
-      onRenameInput:this.onRenameInput, onMetaInput:this.onMetaInput, onNoteInput:this.onNoteInput,onDirectionInput:this.onDirectionInput,onCurrentPositionInput:this.onCurrentPositionInput,
+      onRenameInput:this.onRenameInput, onNoteInput:this.onNoteInput,onDirectionInput:this.onDirectionInput,onCurrentPositionInput:this.onCurrentPositionInput,
       markTouched:this.markTouched, deleteSelected:this.deleteSelected, closeDrawer:this.closePopover,
       nodes, edges, clusterBoxes, filterGroups,
       isEmpty: s.nodes.length === 0,
@@ -1238,13 +1264,11 @@ export default class App extends React.Component {
       addGroup:this.addGroup, editingGroup:s.editingGroup, groupName:s.groupName,
       onGroupNameInput:this.onGroupNameInput, onGroupNameKey:this.onGroupNameKey,
       connectMode:s.connectMode, toggleConnect:this.toggleConnect,
+      connectionNote:s.connectionNote,
       connectBg: s.connectMode ? A : '#fbfbfa', connectColor: s.connectMode ? '#fff' : '#2b3034',
       panX:s.panX, panY:s.panY, zoom:s.zoom, zoomPct:Math.round(s.zoom*100), zoomIn:this.zoomIn, zoomOut:this.zoomOut, onCanvasWheel:this.onCanvasWheel, zoomReset:this.zoomReset, rewire:s.rewire, ports,
-      canvasCursor: s.panning ? 'grabbing' : (s.connectMode ? 'pointer' : ((s.tool==='hand'||s.spacePan) ? 'grab' : 'crosshair')),
-      setViewport:this.setViewport, onCanvasPointerDown:this.onCanvasPointerDown,
-      selectTool:this.selectTool, handTool:this.handTool,
-      toolSelBg: s.tool==='select' ? A : '#fbfbfa', toolSelColor: s.tool==='select' ? '#fff' : '#2b3034',
-      toolHandBg: s.tool==='hand' ? A : '#fbfbfa', toolHandColor: s.tool==='hand' ? '#fff' : '#2b3034',
+      canvasCursor: s.panning ? 'grabbing' : (s.connectMode ? 'pointer' : 'grab'),
+      setViewport:this.setViewport, onCanvasPointerDown:this.onCanvasPointerDown, onCanvasDoubleClick:this.onCanvasDoubleClick,
       modalOpen: s.phase != null, phaseMenu: s.phase==='menu', phaseFilter: s.phase==='filter',
       openDecide:this.openDecide, closeDecide:this.closeDecide, startFilter:this.startFilter,
       startShuffle:this.startShuffle, runFilter:this.runFilter,
@@ -1278,11 +1302,12 @@ export default class App extends React.Component {
       moodOkBg: s.logMood==='ok'?'#7a9a6f':'#fbfbfa', moodOkColor: s.logMood==='ok'?'#fff':'#2b3034', moodOkBorder: s.logMood==='ok'?'#7a9a6f':'#b7bec1',
       moodDownBg: s.logMood==='down'?'#7a9a6f':'#fbfbfa', moodDownColor: s.logMood==='down'?'#fff':'#2b3034', moodDownBorder: s.logMood==='down'?'#7a9a6f':'#b7bec1',
       showOnboarding:s.showOnboarding, onbOpacity:s.onbFading?0:1,
-      headline:this.headlines[s.hIndex], hOpacity:s.hOpacity, inputVal:s.inputVal, weaving:s.weaving,
-      onbInput:this.onbInput, onbKey:this.onbKey, weave:this.weave, loadExample:this.loadExample, toggleMic:this.toggleMic,
+      headline:this.headlines[s.hIndex], hOpacity:s.hOpacity, inputVal:s.inputVal, weaving:s.weaving, listening:s.listening, canWeave:!!(s.inputVal||'').trim()||s.weaving,
+      onbInput:this.onbInput, onbFocus:this.onbFocus, onbKey:this.onbKey, weave:this.weave, loadExample:this.loadExample, toggleMic:this.toggleMic,
       micBg:s.listening?'#7a9a6f':'#f7f8f8', micStroke:s.listening?'#ffffff':'#3a4045', micAnim:s.listening?'micPulse 1.4s ease-in-out infinite':'none', micNote:s.weaving?'untangling your thoughts\u2026':(s.micUnsupported?'voice input needs Chrome or Edge \u2014 just type instead':(s.listening?'listening\u2026 speak your tangle of thoughts':'')),
       onbChips:this.examples.map(ex=>({short:ex.short,onClick:()=>this.fillExample(ex.full)})),
       walkthroughStep:s.walkthroughStep,startWalkthrough:this.startWalkthrough,advanceWalkthrough:this.advanceWalkthrough,skipWalkthrough:this.skipWalkthrough,completeWalkthrough:this.completeWalkthrough,
+      openInputScreen:this.openInputScreen,
       route,
     };
   }
@@ -1297,22 +1322,23 @@ export default class App extends React.Component {
         </svg>
 
         {/* canvas */}
-        <div ref={v.setCanvas} onClick={v.onCanvasClick} onPointerDown={v.onCanvasPointerDown} className="relative flex-auto touch-none overflow-hidden bg-[radial-gradient(#c8ced1_1px,transparent_1px)] bg-[size:26px_26px]" style={{ cursor: v.canvasCursor }}>
+        <div ref={v.setCanvas} onClick={v.onCanvasClick} onDoubleClick={v.onCanvasDoubleClick} onPointerDown={v.onCanvasPointerDown} className="relative flex-auto touch-none overflow-hidden bg-[radial-gradient(#c8ced1_1px,transparent_1px)] bg-[size:26px_26px]" style={{ cursor: v.canvasCursor }}>
           <div ref={v.setViewport} className="absolute inset-0 origin-top-left" style={{ transform: `translate(${v.panX}px, ${v.panY}px) scale(${v.zoom})` }}>
 
             {/* cluster enclosures */}
             {v.clusterBoxes.map(c => (
               <React.Fragment key={c.key}>
                 <div className="pointer-events-none absolute z-[1] rounded-[30px_24px_32px_26px] border-[1.4px] border-dashed [filter:url(#rough)]" style={{ left: c.x, top: c.y, width: c.w, height: c.h, background: c.wash, borderColor: c.border }}></div>
-                <div className="absolute z-[4] flex select-none items-center gap-2 rounded-[9px_8px_10px_8px] border-[1.4px] bg-[#f4f6f7] pt-1 pr-[11px] pb-[5px] pl-[9px] shadow-[1px_2px_0_rgba(58,64,69,.08)]" style={{ left: c.lx, top: c.ly, borderColor: c.border }}>
-                  <span onPointerDown={c.onGroupDown} title="drag to move · click to rename" className="h-[9px] w-[9px] flex-none cursor-grab touch-none rounded-full" style={{ background: c.color }}></span>
+                <div onPointerDown={c.editing?undefined:c.onGroupDown} title={c.editing?undefined:'drag to move this group'} className={`absolute z-[4] flex select-none items-center gap-2 rounded-[9px_8px_10px_8px] border-[1.4px] bg-[#f4f6f7] py-1.5 pr-2 pl-2.5 shadow-[1px_2px_0_rgba(58,64,69,.08)] ${c.editing?'':'cursor-grab touch-none active:cursor-grabbing'}`} style={{ left: c.lx, top: c.ly, borderColor: c.border }}>
+                  <span aria-hidden="true" className="grid w-3 flex-none grid-cols-2 gap-[2px] opacity-70">{[0,1,2,3,4,5].map(i=><span key={i} className="h-[2px] w-[2px] rounded-full" style={{background:c.color}}></span>)}</span>
                   {c.editing ? (
                     <input value={v.groupName} onChange={v.onGroupNameInput} onKeyDown={v.onGroupNameKey} ref={v.focusAdd} className="w-[130px] border-none bg-transparent font-hand text-lg font-bold outline-none" style={{ color: c.labelColor }}/>
                   ) : (
-                    <span onPointerDown={c.onGroupDown} title="drag to move · click to rename" className="cursor-grab touch-none font-hand text-lg font-bold leading-none" style={{ color: c.labelColor }}>{c.label}</span>
+                    <span className="font-hand text-lg font-bold leading-none" style={{ color: c.labelColor }}>{c.label}</span>
                   )}
+                  {!c.editing&&<button onPointerDown={e=>e.stopPropagation()} onClick={c.onLabelClick} aria-label={`rename ${c.label}`} title="rename group" className="ml-0.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-none bg-transparent p-0 text-muted transition-colors hover:bg-white/70 hover:text-ink"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11.8 2.5 14l2.2-.5L13 5.2 10.8 3 3 11.8Z"/><path d="m9.8 4 2.2 2.2"/></svg></button>}
                   {c.canDelete && (
-                    <span onClick={c.onRemove} title="delete group" className="ml-0.5 cursor-pointer text-base leading-none text-[#a4abae]">×</span>
+                    <button onPointerDown={e=>e.stopPropagation()} onClick={c.onRemove} title="delete group" aria-label={`delete ${c.label} group`} className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-none bg-transparent p-0 text-base leading-none text-muted hover:bg-[rgba(176,125,103,.1)] hover:text-[#8c554d]">×</button>
                   )}
                 </div>
               </React.Fragment>
@@ -1329,10 +1355,11 @@ export default class App extends React.Component {
             {v.connectMode && (
               <svg className="absolute inset-0 z-[4] h-full w-full overflow-visible" fill="none">
                 {v.edges.map(e => (
-                  <path key={e.key} d={e.d} stroke="transparent" strokeWidth="16" className="cursor-pointer [pointer-events:stroke]" onClick={e.onRemove}></path>
+                  <path key={e.key} d={e.d} stroke="rgba(176,125,103,.001)" strokeWidth="18" className="cursor-pointer transition-colors hover:stroke-[rgba(176,125,103,.24)] [pointer-events:stroke]" onClick={e.onRemove}></path>
                 ))}
               </svg>
             )}
+            {v.connectMode&&v.edges.map(e=><button key={`remove-${e.key}`} onPointerDown={event=>event.stopPropagation()} onClick={e.onRemove} aria-label="remove connection" title="remove connection" className="absolute z-[8] flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-[1.4px] border-[#9b6259] bg-paper-2 text-[15px] leading-none text-[#8c554d] shadow-[1px_2px_0_rgba(58,64,69,.12)] transition-transform hover:scale-110" style={{left:e.mx,top:e.my}}>×</button>)}
 
             {v.rewire && (
               <svg className="pointer-events-none absolute inset-0 z-[6] h-full w-full overflow-visible" fill="none">
@@ -1343,20 +1370,20 @@ export default class App extends React.Component {
             {v.connectMode && (
               <div className="pointer-events-none absolute inset-0 z-[7]">
                 {v.ports.map((p, i) => (
-                  <div key={i} onPointerDown={p.onDown} title="drag to connect" className="pointer-events-auto absolute h-2.5 w-2.5 cursor-crosshair touch-none rounded-full border-[1.6px] border-accent bg-panel shadow-[1px_1px_0_rgba(58,64,69,.12)]" style={{ left: p.x, top: p.y }}></div>
+                  <div key={i} onPointerDown={p.onDown} title="drag to connect" className="pointer-events-auto absolute flex h-[18px] w-[18px] cursor-crosshair touch-none items-center justify-center rounded-full border-[1.5px] border-accent bg-panel shadow-[1px_2px_0_rgba(58,64,69,.14)] transition-transform hover:scale-125" style={{ left: p.x, top: p.y }}><span className="h-1.5 w-1.5 rounded-full bg-accent"/></div>
                 ))}
               </div>
             )}
 
             {/* nodes */}
             {v.nodes.map(n => (
-              <div key={n.id} data-tour={n.tourTarget?'interest-card':undefined} onPointerDown={n.onDown} onDoubleClick={n.onExpand} className="absolute z-[5] flex h-24 w-[154px] cursor-grab touch-none flex-col rounded-[11px_8px_12px_7px] border-[1.6px] border-ink-line bg-paper-2 px-[13px] py-[11px]" style={{ left: n.x, top: n.y, boxShadow: n.shadow, animation: n.anim, opacity:n.opacity }}>
+              <div key={n.id} data-tour={n.tourTarget?'interest-card':undefined} onPointerDown={n.onDown} onDoubleClick={n.onExpand} className={`group/thought absolute z-[5] flex h-24 w-[154px] touch-none flex-col rounded-[11px_8px_12px_7px] border-[1.6px] border-ink-line bg-paper-2 px-[13px] py-[11px] transition-[transform,box-shadow] ${n.connectTarget?'cursor-crosshair scale-[1.025]':'cursor-grab'}`} style={{ left: n.x, top: n.y, boxShadow: n.shadow, animation: n.anim, opacity:n.opacity }}>
                 {n.chosen && (
                   <div className="absolute -top-[11px] -right-2 rounded-[9px_7px_9px_6px] bg-accent px-2 py-0.5 text-[10px] font-semibold text-white shadow-[1px_2px_0_rgba(58,64,69,.15)]">start here</div>
                 )}
                 <div className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full border-[1.4px] border-[rgba(58,64,69,.3)]" style={{ background: n.color }}></div>
+                <button onPointerDown={e=>e.stopPropagation()} onClick={n.onDelete} aria-label={`delete ${n.label}`} title="delete thought" className="absolute -top-3 -right-3 z-[7] flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-[1.4px] border-[#9b6259] bg-paper-2 text-base leading-none text-[#8c554d] opacity-100 shadow-[1px_2px_0_rgba(58,64,69,.12)] transition-[opacity,transform] hover:scale-110 focus:opacity-100 sm:opacity-0 sm:group-hover/thought:opacity-100">×</button>
                 <div title={n.label} className="line-clamp-2 max-h-10 overflow-hidden pr-4 text-[17px] leading-[1.15] font-semibold text-ink">{n.label}</div>
-                <div className="mt-0.5 truncate pr-1 text-[11px] text-[#90999d]">{n.meta}</div>
                 <div className="mt-auto flex min-w-0 items-center justify-between gap-1.5">
                   <span className="flex shrink-0 items-center gap-1 text-[9px] font-semibold text-muted"><span>{n.directionBadge.icon}</span><span>{n.directionBadge.label}</span></span>
                   <span className="flex min-w-0 items-center gap-1">
@@ -1390,7 +1417,7 @@ export default class App extends React.Component {
           {v.isEmpty && (
             <div className="pointer-events-none absolute top-1/2 left-1/2 z-[3] w-[calc(100%-40px)] -translate-x-1/2 -translate-y-1/2 text-center">
               <div className="font-hand text-[30px] text-muted">a quiet, empty canvas</div>
-              <div className="mt-1.5 text-sm text-[#a4abae]">click anywhere to drop a thought — or use brain&nbsp;dump</div>
+              <div className="mt-1.5 text-sm text-muted-2">drag to move · double-click to add a thought</div>
             </div>
           )}
 
@@ -1409,14 +1436,16 @@ export default class App extends React.Component {
 
         {/* wordmark */}
         <div className="pointer-events-none fixed top-4 left-4 z-20 flex items-baseline gap-2.5 sm:top-5 sm:left-6">
-          <span className="font-hand text-[26px] leading-none font-bold text-ink sm:text-[28px]">Skein</span>
+          <Link href="/" title="back to Skein home" className="pointer-events-auto font-hand text-[26px] leading-none font-bold text-ink hover:text-accent-deep sm:text-[28px]">Skein</Link>
           <span className="hidden text-xs text-[#a4abae] sm:inline">parallel interests, one calm canvas</span>
         </div>
+        <button onClick={v.openInputScreen} className="fixed top-[54px] right-5 z-20 cursor-pointer rounded-[9px_7px_10px_8px] border-[1.4px] border-[#b7bec1] bg-[rgba(251,251,250,.94)] px-2.5 py-1.5 text-[11px] font-semibold text-muted-2 shadow-[1px_2px_0_rgba(58,64,69,.09)] backdrop-blur-[4px] hover:border-ink-line hover:text-ink sm:top-4 sm:right-[155px]">← exit canvas</button>
 
         {/* connect hint */}
         {v.connectMode && (
-          <div className="fixed top-14 left-1/2 z-[21] w-[calc(100%-24px)] -translate-x-1/2 rounded-xl bg-ink px-4 py-2 text-center text-[11px] font-semibold text-white shadow-[2px_3px_0_rgba(0,0,0,.18)] sm:top-5 sm:w-auto sm:whitespace-nowrap sm:text-[13px]">drag from a side dot to another card to link · tap a line to remove · esc to finish</div>
+          <div className="fixed top-14 left-1/2 z-[21] w-[calc(100%-24px)] -translate-x-1/2 rounded-xl bg-ink px-4 py-2 text-center text-[11px] font-semibold text-white shadow-[2px_3px_0_rgba(0,0,0,.18)] sm:top-5 sm:w-auto sm:whitespace-nowrap sm:text-[13px]">drag from any large dot to a card · use × to remove a link · esc to finish</div>
         )}
+        {v.connectionNote&&<div role="status" className="pointer-events-none fixed bottom-[96px] left-1/2 z-[24] rounded-full border border-white/15 bg-ink px-4 py-2 text-xs font-semibold text-white shadow-[2px_3px_0_rgba(0,0,0,.18)] animate-[connectionPop_1.5s_ease_both] sm:bottom-[88px]">✓ {v.connectionNote}</div>}
 
         <Toolbar v={v}/>
         <ExpandedDetail v={v}/>

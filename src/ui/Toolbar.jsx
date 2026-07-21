@@ -50,14 +50,7 @@ export default function Toolbar({ v }) {
         <span className="text-xl leading-none">+</span>
       </ToolButton>
       <Divider />
-      <ToolButton title="select (V) · click to pick, drag to move" hint="V" active={v.toolSelColor === '#fff'} onClick={v.selectTool}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l9 5.4-4 .9 2.3 4.2-1.7.9-2.3-4.3L3 12z"/></svg>
-      </ToolButton>
-      <ToolButton title="hand (H) · drag a node or group to move · drag empty space to pan" hint="H" active={v.toolHandColor === '#fff'} onClick={v.handTool}>
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M7 11.5V6.6a1.5 1.5 0 0 1 3 0V11m0-.4V5.1a1.5 1.5 0 0 1 3 0V11m0-.4V6.1a1.5 1.5 0 0 1 3 0v6.4c0 3.4-1.9 6.1-5.3 6.1-2 0-3.3-.8-4.3-2.3l-2.1-3.2a1.5 1.5 0 0 1 2.4-1.8l.9 1.2"/></svg>
-      </ToolButton>
-      <Divider />
-      <ToolButton title="add a thought (T)" hint="T" onClick={v.addThoughtCenter}>
+      <ToolButton title="add a thought (T) · or double-click canvas" hint="T" onClick={v.addThoughtCenter}>
         <svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M7 2v10M2 7h10"/></svg>
       </ToolButton>
       <ToolButton title="brain dump (B)" hint="B" onClick={v.toggleDump}>

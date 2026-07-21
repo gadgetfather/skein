@@ -45,7 +45,6 @@ function DetailDrawerContent({ v }) {
             </div>
           </div>
           <input value={sel.label} onChange={v.onRenameInput} placeholder="name…" aria-label="interest name" className="w-full border-none bg-transparent font-hand text-[34px] font-bold leading-[1.02] text-ink outline-none"/>
-          <input value={sel.meta} onChange={v.onMetaInput} placeholder="add a short tag…" aria-label="interest tag" className="mt-1 w-full border-none bg-transparent text-[12px] text-[#7b8287] outline-none"/>
         </header>
 
         <section aria-label="Interest group and energy" className="relative mb-5 flex items-start justify-between gap-4 border-y-[1px] border-dashed border-[#cbd1d3] py-3">
@@ -66,9 +65,17 @@ function DetailDrawerContent({ v }) {
               <form onSubmit={createGroup} className="mt-2 flex gap-2 border-t-[1px] border-dashed border-[#d2d7d9] pt-2"><input value={newGroupName} onChange={e=>setNewGroupName(e.target.value)} placeholder="new group name…" maxLength={48} className="min-w-0 flex-1 rounded-[8px_7px_9px_7px] border-[1.3px] border-[#b7bec1] bg-paper-2 px-2.5 py-1.5 text-[11px] text-ink outline-none focus:border-accent"/><button type="submit" disabled={!newGroupName.trim()} className="cursor-pointer rounded-[8px_7px_9px_7px] border-[1.3px] border-ink-line bg-accent px-2.5 py-1.5 text-[10px] font-bold text-white disabled:cursor-default disabled:opacity-45">+ create</button></form>
             </m.div>}</AnimatePresence>
           </div>
-          <div className="w-[76px] flex-none">
-            <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[.08em] text-muted">energy</div>
-            <div className="flex gap-1.5">{sel.dots.map((d, i) => (<button key={i} onClick={d.onClick} aria-label={`energy ${i+1}`} className="h-[19px] w-[19px] cursor-pointer rounded-full border-[1.4px] border-ink-line transition-transform hover:-translate-y-px" style={{ background:d.bg }}></button>))}</div>
+          <div className="w-[126px] flex-none">
+            <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.08em] text-muted">
+              <span>energy needed</span>
+              <span className="group/info relative flex">
+                <button type="button" aria-label="What energy needed means" aria-describedby="energy-needed-help" className="flex h-4 w-4 cursor-help items-center justify-center rounded-full border-none bg-transparent p-0 text-muted transition-colors hover:text-ink focus-visible:text-ink">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 7.2v4"/><circle cx="8" cy="4.7" r=".65" fill="currentColor" stroke="none"/></svg>
+                </button>
+                <span id="energy-needed-help" role="tooltip" className="pointer-events-none absolute right-0 bottom-[calc(100%+7px)] z-[60] w-[218px] translate-y-1 rounded-[9px_7px_10px_8px] border-[1.3px] border-ink-line bg-ink px-2.5 py-2 text-left text-[10px] font-normal normal-case leading-[1.4] tracking-normal text-white opacity-0 shadow-[2px_3px_0_rgba(0,0,0,.16)] transition-[opacity,transform] duration-150 group-hover/info:translate-y-0 group-hover/info:opacity-100 group-focus-within/info:translate-y-0 group-focus-within/info:opacity-100">How demanding this interest usually feels. Skein uses it to match suggestions to your available energy.</span>
+              </span>
+            </div>
+            <div className="flex gap-1.5">{sel.dots.map((d, i) => (<button key={i} onClick={d.onClick} aria-label={`${i===0?'light':i===1?'medium':'deep'} energy needed`} title={`${i===0?'light':i===1?'medium':'deep'} effort`} className="h-[22px] w-[22px] cursor-pointer rounded-full border-[1.4px] border-ink-line transition-transform hover:-translate-y-px" style={{ background:d.bg }}></button>))}</div>
           </div>
         </section>
 

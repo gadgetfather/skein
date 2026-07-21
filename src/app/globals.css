@@ -13,18 +13,35 @@
   --color-hairline: #c8ced1;
   --color-accent: #7a9a6f;
   --color-accent-deep: #5c7a52;
-  --font-sans: 'Shantell Sans', cursive;
+  --font-sans: 'Source Sans 3', sans-serif;
   --font-hand: 'Caveat', cursive;
   --shadow-sketch-sm: 2px 3px 0 rgba(58, 64, 69, 0.14);
   --shadow-sketch-lg: 6px 8px 0 rgba(58, 64, 69, 0.1);
 }
 
 html { scroll-behavior: smooth; }
-body { background: #edf0f1; -webkit-font-smoothing: antialiased; font-family: 'Shantell Sans', cursive; color: #2b3034; }
+body { background: #edf0f1; -webkit-font-smoothing: antialiased; font-family: 'Source Sans 3', sans-serif; color: #2b3034; }
 a { color: #7a9a6f; text-decoration: none; }
 a:hover { color: #5c7a52; }
-input, textarea, button { font-family: 'Shantell Sans', cursive; }
+input, textarea, button { font-family: 'Source Sans 3', sans-serif; }
 code, .mono { font-family: 'JetBrains Mono', monospace; }
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #5c7a52;
+  outline-offset: 3px;
+}
+
+::placeholder { color: #737b80; opacity: 1; }
+.focus-surface input,
+.focus-surface input:focus,
+.focus-surface input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
 
 @keyframes callPulse {
   0%,100% { box-shadow: 2px 3px 0 rgba(58,64,69,.14), 0 0 0 0 rgba(122,154,111,0); }
@@ -38,6 +55,11 @@ code, .mono { font-family: 'JetBrains Mono', monospace; }
 @keyframes threadFlow {
   0%,100% { stroke-dashoffset:0; opacity:.55; }
   50% { stroke-dashoffset:-32; opacity:1; }
+}
+@keyframes connectionPop {
+  0% { opacity:0; transform:translate(-50%,8px) scale(.96); }
+  18%,75% { opacity:1; transform:translate(-50%,0) scale(1); }
+  100% { opacity:0; transform:translate(-50%,-4px) scale(.98); }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -10,7 +10,7 @@ const TOUR_STEPS = [
     target: '[data-tour="interest-card"]',
     eyebrow: 'your canvas',
     title: 'Everything belongs here.',
-    body: 'Skein groups your interests and links the ones that can feed each other. Open any card to work with one thread at a time.',
+    body: 'Drag empty space to move around. Double-click anywhere to add a thought, or open a card to work with one thread at a time.',
     action: 'open this thread →',
   },
   {
