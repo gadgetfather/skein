@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import * as m from 'motion/react-m';
 import CalmLoader from './CalmLoader';
+import RouteMaterials from './RouteMaterials';
 import { motionEase, popoverSurface } from './motion/tokens';
 
 const TYPE_COLORS = {
@@ -92,6 +93,7 @@ function RouteNode({ node, pos, zoom }) {
       >
         <span className="mb-1 text-[9px] font-bold uppercase tracking-[.09em]" style={{color:node.done?'rgba(255,255,255,.82)':color}}>{terminal?(node.type==='origin'?'start · you are here': 'destination'):node.type}{node.source==='ai_suggested'?' · ✦':''}</span>
         <span title={node.label} className={`${terminal?'line-clamp-4 font-hand text-[20px] leading-[1.05]':'line-clamp-5 text-[13px] leading-[1.16]'} max-w-full overflow-hidden font-bold`}>{node.label}</span>
+        {!terminal&&node.sourceMaterialIds?.length>0&&<span title={node.sourceTitles?.join(', ')} className="mt-1 text-[8px] font-bold uppercase tracking-[.06em]" style={{color:node.done?'rgba(255,255,255,.76)':'#7a817f'}}>⌁ {node.sourceMaterialIds.length} source{node.sourceMaterialIds.length===1?'':'s'}</span>}
         {terminal&&node.done&&<span title="current position" aria-hidden="true" className={`absolute ${badgePosition} flex h-5 w-5 items-center justify-center rounded-full border border-white/50 bg-white/15 text-[11px] font-bold text-white`}>✓</span>}
         {locked&&<span aria-hidden="true" className={`absolute ${badgePosition} flex h-5 w-5 items-center justify-center rounded-full border border-[#aeb5b8] bg-paper text-muted`}><svg width="10" height="11" viewBox="0 0 10 11" fill="none" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round"><rect x="1.5" y="4.5" width="7" height="5" rx="1.2"/><path d="M3 4.5V3a2 2 0 0 1 4 0v1.5"/></svg></span>}
       </button>
@@ -226,6 +228,7 @@ export default function RouteMap({ v }) {
         </div>
         <div className="flex max-w-full items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {map.status==='draft'&&<button onClick={r.onAccept} className="cursor-pointer rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line bg-accent px-3.5 py-2 text-xs font-bold text-white shadow-[2px_2px_0_rgba(58,64,69,.16)]">use this route ✓</button>}
+          <button onClick={r.onOpenMaterials} aria-expanded={r.materialsOpen} className="cursor-pointer whitespace-nowrap rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line bg-paper-2 px-3 py-2 text-xs font-semibold text-ink shadow-[1px_2px_0_rgba(58,64,69,.1)] hover:-translate-y-px">⌁ context · {r.activeMaterialCount}</button>
           <button onClick={r.onAutoArrange} disabled={!r.canTidy||r.busy} title={r.canTidy?'return moved nodes to the staged layout':'Already tidy — drag a node to rearrange it'} className="cursor-pointer whitespace-nowrap rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line bg-paper-2 px-3 py-2 text-xs font-semibold text-ink shadow-[1px_2px_0_rgba(58,64,69,.1)] transition-[transform,background,color] hover:-translate-y-px hover:bg-panel disabled:cursor-default disabled:border-[#cbd1d3] disabled:bg-transparent disabled:text-[#9aa2a6] disabled:shadow-none disabled:hover:translate-y-0">{r.canTidy?'↹ tidy map':'map is tidy ✓'}</button>
           <button onClick={r.onGenerate} disabled={r.busy} className="cursor-pointer rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line bg-paper-2 px-3.5 py-2 text-xs font-bold text-ink shadow-[2px_2px_0_rgba(58,64,69,.1)] disabled:cursor-wait disabled:opacity-60">{r.busy?'✦ mapping the route…':hasRoute?'✦ redraft with AI':'✦ draft route with AI'}</button>
           <button onClick={r.onClose} title="close route map" className="hidden h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border-[1.5px] border-ink-line bg-paper-2 text-lg text-ink sm:flex">×</button>
@@ -234,7 +237,7 @@ export default function RouteMap({ v }) {
 
       <div onWheel={onWheelZoom} onPointerDownCapture={onPanStart} onPointerMoveCapture={onPanMove} onPointerUpCapture={onPanEnd} onPointerCancelCapture={onPanEnd} className={`relative flex-1 touch-none overflow-hidden overscroll-contain bg-[radial-gradient(#c8ced1_1px,transparent_1px)] bg-[size:26px_26px] ${panning?'cursor-grabbing':'cursor-grab'}`}>
         {spaceHeld&&<div aria-hidden="true" className={`absolute inset-0 z-[20] ${panning?'cursor-grabbing':'cursor-grab'}`}></div>}
-        {r.busy&&<div data-route-overlay className="absolute inset-0 z-[45] flex items-center justify-center bg-[rgba(237,240,241,.52)] px-4 backdrop-blur-[1.5px]"><CalmLoader label={hasRoute?'redrafting with care…':'mapping a path from here…'} detail="reading your destination, current position, and recent moves"/></div>}
+        {r.busy&&<div data-route-overlay className="absolute inset-0 z-[45] flex items-center justify-center bg-[rgba(237,240,241,.52)] px-4 backdrop-blur-[1.5px]"><CalmLoader label={hasRoute?'redrafting with care…':'mapping a path from here…'} detail={`reading your destination, recent moves${r.activeMaterialCount?`, and ${r.activeMaterialCount} source${r.activeMaterialCount===1?'':'s'}`:''}`}/></div>}
         <div data-route-overlay className="absolute top-3 left-3 z-[30] w-fit max-w-[calc(100%-24px)] sm:top-5 sm:left-6 sm:max-w-[calc(100%-48px)]">
         <div className="flex items-center gap-2 rounded-[10px_8px_11px_9px] border-[1.3px] border-[#c7ced0] bg-[rgba(251,251,250,.94)] px-2.5 py-2 text-[9px] text-muted-2 shadow-[1px_2px_0_rgba(58,64,69,.07)] backdrop-blur-[3px] sm:hidden"><span>drag canvas = pan</span><span className="flex overflow-hidden rounded-[5px] border border-[#c7ced0] bg-paper text-ink"><button onClick={()=>stepZoom(-.1)} aria-label="zoom Route Map out" className="w-6 border-r border-[#d9dddf]">−</button><button onClick={resetView} className="min-w-10 px-1 py-0.5 font-bold">{Math.round(zoom*100)}%</button><button onClick={()=>stepZoom(.1)} aria-label="zoom Route Map in" className="w-6 border-l border-[#d9dddf]">+</button></span></div>
         <div aria-label="Route map controls" className="hidden items-start gap-2 sm:flex">
@@ -274,6 +277,7 @@ export default function RouteMap({ v }) {
       </div>
 
       <AnimatePresence>{r.addOpen&&<div className="fixed bottom-5 left-1/2 z-[60] w-[min(620px,calc(100vw-32px))] -translate-x-1/2"><m.div {...popoverSurface} className="rounded-[16px_12px_17px_13px] border-[1.8px] border-ink-line bg-panel p-4 shadow-[5px_6px_0_rgba(58,64,69,.18)]"><div className="mb-2 flex items-center justify-between"><span className="font-hand text-[21px] font-bold text-ink">what does “{r.addParentLabel}” unlock?</span><button onClick={r.onCancelAdd} className="cursor-pointer border-none bg-transparent text-lg text-muted">×</button></div><input autoFocus value={r.addLabel} onChange={r.onAddLabel} onKeyDown={e=>{if(e.key==='Enter')r.onAddNode();if(e.key==='Escape')r.onCancelAdd();}} placeholder="a concrete task, capability, resource, or milestone…" className="w-full rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line bg-paper-2 px-3 py-2.5 text-[13px] text-ink outline-none"/><div className="mt-2.5 flex flex-wrap items-center gap-1.5">{r.typeChips.map(t=><button key={t.type} onClick={t.onSelect} className="cursor-pointer rounded-[8px] border-[1.3px] px-2 py-1 text-[10px] font-semibold" style={{background:t.active?(TYPE_COLORS[t.type]||'#7a9a6f'):'#fbfbfa',borderColor:t.active?(TYPE_COLORS[t.type]||'#7a9a6f'):'#b7bec1',color:t.active?'#fff':'#2b3034'}}>{t.label}</button>)}<span className="flex-1"></span><button onClick={r.onAddNode} className="cursor-pointer rounded-[9px_7px_10px_8px] border-[1.5px] border-ink-line bg-accent px-3 py-1.5 text-xs font-bold text-white">add to route →</button></div></m.div></div>}</AnimatePresence>
+      <RouteMaterials r={r}/>
     </m.div>
   );
 }

@@ -9,4 +9,5 @@ specs/*
 !specs/SPEC-living-directions.md
 !specs/SPEC-living-directions-implementation.md
 !specs/SPEC-motion-system.md
+!specs/SPEC-route-materials.md
 .env*

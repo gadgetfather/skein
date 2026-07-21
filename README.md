@@ -5,7 +5,7 @@ Parallel interests, one calm canvas — a spatial canvas for juggling multiple i
 ## Routes
 
 - `/` — marketing landing page (from `Skein Landing.dc.html`) with working waitlist input (local-only, no backend yet) and links into the canvas.
-- `/canvas` — the app itself (from `Interest Canvas.dc.html`): first-run "weave" onboarding, draggable interest cards, auto-classified groups with hand-drawn enclosures, connect mode, brain dump, route maps, route-aware "decide for me", focus sessions, interest detail, undo/redo, keyboard shortcuts, local-first persistence, and optional Supabase cloud save.
+- `/canvas` — the app itself (from `Interest Canvas.dc.html`): first-run "weave" onboarding, draggable interest cards, auto-classified groups with hand-drawn enclosures, connect mode, brain dump, route maps with per-interest notes/links/PDF/image context, route-aware "decide for me", focus sessions, interest detail, undo/redo, keyboard shortcuts, local-first persistence, and optional Supabase cloud save.
 - `/design` — the design-system reference sheet (from `Design System.dc.html`): color tokens, type scale, radii/shadows, component specs, shortcuts, principles.
 
 ## Stack
@@ -27,7 +27,7 @@ npm start        # serve the production build
 Skein remains fully usable without an account. Every change is written to the existing `skein.*` localStorage keys first. When Supabase is configured, the canvas also offers passwordless email sign-in and debounced cloud backup.
 
 1. Create a Supabase project.
-2. Run [`supabase/migrations/202607200001_create_skein_canvases.sql`](./supabase/migrations/202607200001_create_skein_canvases.sql) in the Supabase SQL editor, or link the Supabase CLI and run `supabase db push`.
+2. Run the migrations in [`supabase/migrations`](./supabase/migrations) in timestamp order in the Supabase SQL editor, or link the Supabase CLI and run `supabase db push`. The second migration creates the private Route Materials bucket and owner-only Storage policies.
 3. Add the following browser-safe project values to `.env.local`:
 
    ```sh
@@ -44,10 +44,12 @@ On first sign-in, an empty cloud account receives the existing local canvas. If 
 
 ## How GPT-5.6 is used
 
-Skein calls **GPT-5.6** (default `openai/gpt-5.6-terra`, configurable via `OPENROUTER_MODEL`) through [OpenRouter](https://openrouter.ai) using the Vercel AI SDK (`ai` + `@openrouter/ai-sdk-provider`), in two places:
+Skein calls **GPT-5.6** (default `openai/gpt-5.6-terra`, configurable via `OPENROUTER_MODEL`) through [OpenRouter](https://openrouter.ai) using the Vercel AI SDK (`ai` + `@openrouter/ai-sdk-provider`), in four places:
 
 1. **Weave** (`POST /api/weave`) — the onboarding brain-dump. Your messy sentence goes to GPT-5.6 with a zod-enforced structured-output schema (`generateObject`) and comes back as a typed map: interests with cluster (`learn`/`craft`/`body`/`other`), energy (1–3), priority (1–3), a short "whisper" label, plus suggested edges between interests that feed each other. The canvas lays the nodes out grouped by cluster and draws the suggested connections.
 2. **Suggest next step** (`POST /api/suggest`) — the "✦ suggest with AI" button in an interest's detail view sends the interest, its goal, and recent session notes to GPT-5.6, which replies with one tiny, verb-first next step.
+3. **Route materials** (`POST /api/materials/extract`) — public page text, PDFs, and images are reduced once into a bounded factual summary and useful excerpts. Source content is explicitly treated as untrusted data, not model instructions.
+4. **Route Map** (`POST /api/route-map`) — combines the direction, current position, recent activity, saved moves, and up to eight selected material summaries into an editable dependency route. Generated nodes retain material IDs when a source materially grounds them.
 
 **Graceful degradation:** AI routes return `503` when `OPENROUTER_API_KEY` is absent, and the client uses local fallbacks. The app remains usable offline. Canvas data stays in localStorage unless the user signs into the optional Supabase cloud save; only AI-request context is sent to the configured model API.
 
@@ -55,7 +57,7 @@ Skein calls **GPT-5.6** (default `openai/gpt-5.6-terra`, configurable via `OPENR
 
 - `src/app/` — App Router pages: `page.jsx` (landing), `canvas/page.jsx`, `design/page.jsx`, `layout.jsx` (fonts + metadata), `globals.css` (reset + keyframes), `Waitlist.jsx`.
 - `src/App.jsx` — canvas application logic + canvas render.
-- `src/ui/` — canvas surfaces: Toolbar, DecideFlow, BrainDump, DetailDrawer, ExpandedDetail, RouteMap, AccountSync, FocusOverlay, Onboarding.
+- `src/ui/` — canvas surfaces: Toolbar, DecideFlow, BrainDump, DetailDrawer, ExpandedDetail, RouteMap, RouteMaterials, AccountSync, FocusOverlay, Onboarding.
 - `src/lib/canvas-document.js` — versioned local/cloud canvas document helpers and sync metadata.
 - `src/lib/supabase/` — browser client and local-first account sync orchestration.
 - `supabase/migrations/` — Postgres schema, grants, trigger, and RLS policies.
