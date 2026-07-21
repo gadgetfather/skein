@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Waitlist from './Waitlist';
 import { HeroItem, HeroSequence, PreviewItem, PreviewPath, PreviewSequence, ViewReveal } from '../ui/motion/LandingMotion';
 
 export default function Landing() {
@@ -18,7 +17,7 @@ export default function Landing() {
             <a href="#how" className="hidden text-[#4c5257] hover:text-[#4c5257] sm:inline">how it works</a>
             <a href="#features" className="hidden text-[#4c5257] hover:text-[#4c5257] sm:inline">features</a>
             <a href="#faq" className="hidden text-[#4c5257] hover:text-[#4c5257] sm:inline">FAQ</a>
-            <Link href="/canvas" className="rounded-[11px_9px_12px_9px] border-[1.6px] border-ink-line bg-panel px-[15px] py-2 font-semibold text-ink hover:text-ink shadow-[2px_2px_0_rgba(58,64,69,.12)]">try the canvas</Link>
+            <Link href="/canvas" className="rounded-[11px_9px_12px_9px] border-[1.6px] border-ink-line bg-panel px-[15px] py-2 font-semibold text-ink hover:text-ink shadow-[2px_2px_0_rgba(58,64,69,.12)]">start weaving</Link>
           </div>
         </div>
       </div>
@@ -27,12 +26,12 @@ export default function Landing() {
       <HeroSequence className="mx-auto max-w-[760px] px-4 pt-12 text-center sm:px-6 sm:pt-19">
         <HeroItem className="mb-[22px]"><div className="inline-block rounded-[20px] border-[1.4px] border-accent bg-[rgba(122,154,111,.12)] px-4 py-1 font-hand text-xl text-accent">for the multi-passionate</div></HeroItem>
         <HeroItem className="font-hand text-[48px] font-bold leading-[1.02] text-ink sm:text-[68px]">Untangle your parallel interests.</HeroItem>
-        <HeroItem className="mx-auto mt-[18px] max-w-[560px] text-[15px] leading-[1.55] text-muted-2 sm:text-[17px]">Brain-dump every project, hobby, and someday-maybe. Skein weaves them into one calm map — then, when you're overwhelmed, quietly tells you the single thing to do next.</HeroItem>
-        <HeroItem className="mt-[30px] flex items-center justify-center gap-2.5">
-          <Waitlist />
+        <HeroItem className="mx-auto mt-[18px] max-w-[560px] text-[15px] leading-[1.55] text-muted-2 sm:text-[17px]">Drop in everything you care about. Skein turns it into one calm map—and one clear next step.</HeroItem>
+        <HeroItem className="mt-[30px] flex flex-wrap items-center justify-center gap-3">
+          <Link href="/canvas" className="rounded-[12px_9px_13px_10px] border-[1.7px] border-ink-line bg-accent px-6 py-3 text-[15px] font-bold !text-white shadow-[3px_4px_0_rgba(58,64,69,.18)] transition-transform hover:-translate-y-0.5 hover:!text-white active:translate-y-px">start weaving →</Link>
+          <a href="#how" className="border-b-[1.5px] border-dashed border-accent pb-px text-sm font-semibold text-accent hover:text-accent">see how it works</a>
         </HeroItem>
-        <HeroItem className="mt-3.5"><Link href="/canvas" className="border-b-[1.5px] border-dashed border-accent pb-px text-sm font-semibold text-accent hover:text-accent">or try the live canvas →</Link></HeroItem>
-        <HeroItem className="mt-2.5 text-xs text-[#a4abae]">free while in beta · no credit card</HeroItem>
+        <HeroItem className="mt-3 text-xs text-[#a4abae]">free while in beta · saves locally · no credit card</HeroItem>
       </HeroSequence>
 
       {/* CANVAS PREVIEW */}
@@ -49,7 +48,10 @@ export default function Landing() {
             <PreviewItem className="absolute left-7 top-8 flex items-center gap-[7px] rounded-[9px_8px_10px_8px] border-[1.4px] border-[rgba(122,154,111,.6)] bg-[#f4f6f7] px-2.5 py-[3px] sm:left-[84px]"><span className="h-2 w-2 rounded-full bg-accent"></span><span className="font-hand text-[15px] font-bold text-muted-2">learning</span></PreviewItem>
             <PreviewItem className="absolute right-3 top-[125px] h-[130px] w-[180px] rounded-[24px_22px_26px_20px] border-[1.4px] border-dashed border-[rgba(111,138,168,.5)] bg-[rgba(111,138,168,.06)] [filter:url(#rough)] sm:right-[120px] sm:top-[150px] sm:h-[150px] sm:w-[220px]" />
             <PreviewItem className="absolute right-8 top-[111px] flex items-center gap-[7px] rounded-[9px_8px_10px_8px] border-[1.4px] border-[rgba(111,138,168,.6)] bg-[#f4f6f7] px-2.5 py-[3px] sm:right-[250px] sm:top-[134px]"><span className="h-2 w-2 rounded-full bg-[#6f8aa8]"></span><span className="font-hand text-[15px] font-bold text-muted-2">build &amp; ship</span></PreviewItem>
-            <svg className="absolute inset-0 h-full w-full overflow-visible" fill="none" stroke="#9aa1a5" strokeWidth="1.3" strokeLinecap="round"><PreviewPath d="M190 130 C340 180 500 150 620 200" opacity={0.8} filter="url(#edge)"/><PreviewPath d="M170 190 C300 240 430 250 560 250" opacity={0.7} filter="url(#edge)"/></svg>
+            <svg className="absolute top-[94px] left-[168px] h-[72px] w-[calc(100%_-_332px)] overflow-visible sm:hidden" viewBox="0 0 100 72" preserveAspectRatio="none" fill="none" stroke="#9aa1a5" strokeWidth="1.3" strokeLinecap="round"><PreviewPath d="M0 0 C44 4 56 65 100 72" vectorEffect="non-scaling-stroke" opacity={0.8} filter="url(#edge)"/></svg>
+            <svg className="absolute top-[178px] left-[180px] h-[12px] w-[calc(100%_-_344px)] overflow-visible sm:hidden" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" stroke="#9aa1a5" strokeWidth="1.3" strokeLinecap="round"><PreviewPath d="M0 0 C42 0 58 12 100 12" vectorEffect="non-scaling-stroke" opacity={0.7} filter="url(#edge)"/></svg>
+            <svg className="absolute top-[94px] left-[242px] hidden h-[108px] w-[calc(100%_-_542px)] overflow-visible sm:block" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" stroke="#9aa1a5" strokeWidth="1.3" strokeLinecap="round"><PreviewPath d="M0 0 C34 4 72 28 100 100" vectorEffect="non-scaling-stroke" opacity={0.8} filter="url(#edge)"/></svg>
+            <svg className="absolute top-[178px] left-[260px] hidden h-[35px] w-[calc(100%_-_560px)] overflow-visible sm:block" viewBox="0 0 100 35" preserveAspectRatio="none" fill="none" stroke="#9aa1a5" strokeWidth="1.3" strokeLinecap="round"><PreviewPath d="M0 0 C36 0 68 35 100 35" vectorEffect="non-scaling-stroke" opacity={0.7} filter="url(#edge)"/></svg>
             <PreviewItem className="absolute left-7 top-[66px] w-[140px] rounded-[11px_8px_12px_7px] border-[1.6px] border-ink-line bg-paper-2 px-3 py-[9px] shadow-[2px_3px_0_rgba(58,64,69,.12)] sm:left-[92px] sm:w-[150px]"><div className="text-sm font-semibold">Learn Japanese</div><div className="mt-1.5 flex gap-[3px]"><span className="h-[5px] w-[5px] rounded-full bg-accent"></span><span className="h-[5px] w-[5px] rounded-full bg-accent"></span><span className="h-[5px] w-[5px] rounded-full bg-accent"></span></div></PreviewItem>
             <PreviewItem className="absolute left-10 top-[150px] w-[140px] rounded-[9px_11px_8px_12px] border-[1.6px] border-ink-line bg-paper-2 px-3 py-[9px] shadow-[2px_3px_0_rgba(58,64,69,.12)] sm:left-[110px] sm:w-[150px]"><div className="text-sm font-semibold">Read more</div><div className="mt-1.5 flex gap-[3px]"><span className="h-[5px] w-[5px] rounded-full bg-accent"></span><span className="h-[5px] w-[5px] rounded-full bg-[#cbd0d2]"></span><span className="h-[5px] w-[5px] rounded-full bg-[#cbd0d2]"></span></div></PreviewItem>
             <PreviewItem className="absolute right-6 top-[155px] w-[140px] rounded-[10px_9px_11px_8px] border-[1.6px] border-ink-line bg-paper-2 px-3 py-[9px] shadow-[2px_3px_0_rgba(58,64,69,.12)] sm:right-[150px] sm:top-[180px] sm:w-[150px]"><div className="text-sm font-semibold">Ship the game</div><div className="mt-1.5 flex gap-[3px]"><span className="h-[5px] w-[5px] rounded-full bg-[#6f8aa8]"></span><span className="h-[5px] w-[5px] rounded-full bg-[#6f8aa8]"></span><span className="h-[5px] w-[5px] rounded-full bg-[#6f8aa8]"></span></div></PreviewItem>
@@ -165,14 +167,13 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* WAITLIST FOOTER */}
+      {/* FINAL CTA */}
       <ViewReveal className="mx-auto mt-16 max-w-[1120px] px-4 sm:mt-24 sm:px-6">
         <div className="rounded-3xl border-[1.8px] border-ink-line bg-ink px-5 py-10 text-center shadow-[6px_8px_0_rgba(0,0,0,.16)] sm:px-10 sm:py-14">
           <div className="font-hand text-[38px] font-bold leading-[1.05] text-white sm:text-[46px]">Quiet the noise. Weave your interests.</div>
-          <div className="mt-3 text-base text-[#aab1b4]">Join the waitlist for early access — or start weaving right now.</div>
-          <div className="mt-[26px] flex flex-wrap items-center justify-center gap-2.5">
-            <Waitlist dark />
-            <Link href="/canvas" className="border-b-[1.5px] border-dashed border-accent pb-px text-[15px] font-semibold text-[#dfe4e6] hover:text-[#dfe4e6]">try the live canvas →</Link>
+          <div className="mt-3 text-base text-[#aab1b4]">Your first map takes about a minute. No setup required.</div>
+          <div className="mt-[26px] flex items-center justify-center">
+            <Link href="/canvas" className="rounded-[12px_9px_13px_10px] border-[1.7px] border-ink-line bg-accent px-6 py-3 text-[15px] font-bold !text-white shadow-[3px_4px_0_rgba(0,0,0,.28)] transition-transform hover:-translate-y-0.5 hover:!text-white active:translate-y-px">start weaving →</Link>
           </div>
         </div>
       </ViewReveal>

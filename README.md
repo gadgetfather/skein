@@ -4,7 +4,7 @@ Parallel interests, one calm canvas — a spatial canvas for juggling multiple i
 
 ## Routes
 
-- `/` — marketing landing page (from `Skein Landing.dc.html`) with working waitlist input (local-only, no backend yet) and links into the canvas.
+- `/` — marketing landing page (from `Skein Landing.dc.html`) with direct calls to action into the live canvas.
 - `/canvas` — the app itself (from `Interest Canvas.dc.html`): first-run "weave" onboarding, draggable interest cards, auto-classified groups with hand-drawn enclosures, connect mode, brain dump, route maps with per-interest notes/links/PDF/image context, route-aware "decide for me", focus sessions, interest detail, undo/redo, keyboard shortcuts, local-first persistence, and optional Supabase cloud save.
 - `/design` — the design-system reference sheet (from `Design System.dc.html`): color tokens, type scale, radii/shadows, component specs, shortcuts, principles.
 
@@ -55,7 +55,7 @@ Skein calls **GPT-5.6** (default `openai/gpt-5.6-terra`, configurable via `OPENR
 
 ## Structure
 
-- `src/app/` — App Router pages: `page.jsx` (landing), `canvas/page.jsx`, `design/page.jsx`, `layout.jsx` (fonts + metadata), `globals.css` (reset + keyframes), `Waitlist.jsx`.
+- `src/app/` — App Router pages: `page.jsx` (landing), `canvas/page.jsx`, `design/page.jsx`, `layout.jsx` (fonts + metadata), and `globals.css` (reset + keyframes).
 - `src/App.jsx` — canvas application logic + canvas render.
 - `src/ui/` — canvas surfaces: Toolbar, DecideFlow, BrainDump, DetailDrawer, ExpandedDetail, RouteMap, RouteMaterials, AccountSync, FocusOverlay, Onboarding.
 - `src/lib/canvas-document.js` — versioned local/cloud canvas document helpers and sync metadata.

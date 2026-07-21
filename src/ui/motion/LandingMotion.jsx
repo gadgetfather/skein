@@ -78,11 +78,10 @@ export function PreviewPath(props) {
     <m.path
       {...props}
       variants={{
-        hidden: { opacity: 0, pathLength: 0 },
+        hidden: { opacity: 0 },
         visible: {
           opacity: props.opacity ?? 0.8,
-          pathLength: 1,
-          transition: { duration: 0.7, ease: motionEase.out },
+          transition: { duration: 0.45, ease: motionEase.out },
         },
       }}
     />
