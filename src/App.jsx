@@ -122,7 +122,7 @@ export default class App extends React.Component {
     this._ht = setInterval(()=>{ if(!this.state.showOnboarding||this.state.headlinePaused) return; this.setState({hOpacity:0}); this._headlineSwap=setTimeout(()=>this.setState(st=>({hIndex:(st.hIndex+1)%this.headlines.length, hOpacity:1})),320); }, 4200);
     this.applyRoute(this.props.pathname);
   }
-  componentWillUnmount(){ if(this._spin) clearInterval(this._spin); if(this._ht) clearInterval(this._ht); if(this._headlineSwap) clearTimeout(this._headlineSwap); if(this._connectionTimer) clearTimeout(this._connectionTimer); if(this._micNote) clearTimeout(this._micNote); if(this._walkthroughTimer) clearTimeout(this._walkthroughTimer); if(this._rec){ try{ this._rec.stop(); }catch(e){} } if(this._pomo) clearInterval(this._pomo); if(this._focus) clearInterval(this._focus); if(this._onKey) window.removeEventListener('keydown', this._onKey); if(this._onKeyUp) window.removeEventListener('keyup', this._onKeyUp); if(this._onBlur) window.removeEventListener('blur', this._onBlur); }
+  componentWillUnmount(){ if(this._spin) clearInterval(this._spin); if(this._ht) clearInterval(this._ht); if(this._headlineSwap) clearTimeout(this._headlineSwap); if(this._connectionTimer) clearTimeout(this._connectionTimer); if(this._micNote) clearTimeout(this._micNote); if(this._walkthroughTimer) clearTimeout(this._walkthroughTimer); if(this._focusDoneTimer) clearTimeout(this._focusDoneTimer); if(this._rec){ try{ this._rec.stop(); }catch(e){} } if(this._pomo) clearInterval(this._pomo); if(this._focus) clearInterval(this._focus); if(this._onKey) window.removeEventListener('keydown', this._onKey); if(this._onKeyUp) window.removeEventListener('keyup', this._onKeyUp); if(this._onBlur) window.removeEventListener('blur', this._onBlur); }
   parseInterests(text){
     let t=(text||'').replace(/^\s*(i\s+want\s+to|i'd\s+like\s+to|i\s+wanna|help\s+me|i\s+need\s+to|i\s+keep\s+meaning\s+to)\s+/i,'');
     const parts=t.split(/\s*(?:,|;|\band\b|&|\+|\/|\n|\bplus\b)\s*/i).map(p=>p.trim()).filter(Boolean);
@@ -1062,7 +1062,7 @@ export default class App extends React.Component {
     this.go('/canvas');
     this.startFocus(id, mins, this.state.chosenStep, this.state.chosenRouteNodeId);
   };
-  startFocus=(nodeId,mins,stepText,routeNodeId)=>{ if(this._focus)clearInterval(this._focus); const total=mins*60; this.setState({ focusOpen:true, focusMinimized:false, focusDone:false, focusNodeId:nodeId, focusStepText:stepText||'', focusRouteNodeId:routeNodeId||null, focusTotal:total, focusLeft:total, focusRunning:true }); this._focus=setInterval(()=>this._focusTick(),1000); };
+  startFocus=(nodeId,mins,stepText,routeNodeId)=>{ if(this._focus)clearInterval(this._focus); if(this._focusDoneTimer){clearTimeout(this._focusDoneTimer);this._focusDoneTimer=null;} const total=mins*60; this.setState({ focusOpen:true, focusMinimized:false, focusDone:false, focusNodeId:nodeId, focusStepText:stepText||'', focusRouteNodeId:routeNodeId||null, focusTotal:total, focusLeft:total, focusRunning:true }); this._focus=setInterval(()=>this._focusTick(),1000); };
   _focusTick(){ this.setState(s=>{ if(!s.focusRunning) return {}; const l=(s.focusLeft||0)-1; if(l<=0){ clearInterval(this._focus); this._focus=null; setTimeout(()=>this.completeFocus(),0); return {focusLeft:0,focusRunning:false}; } return {focusLeft:l}; }); }
   pauseFocus=()=>this.setState({focusRunning:false});
   resumeFocus=()=>{ if(!this._focus){ this._focus=setInterval(()=>this._focusTick(),1000); } this.setState({focusRunning:true}); };
@@ -1072,9 +1072,18 @@ export default class App extends React.Component {
   minimizeFocus=()=>this.setState({focusMinimized:true});
   resumeFromPill=()=>this.setState({focusMinimized:false});
   _logFocus(dur,mood){ const id=this.state.focusNodeId; if(!id||dur<1)return; this.pushHistory(); const now=Date.now(); this.setState(s=>({nodes:s.nodes.map(n=>n.id===id?{...n,lastTouched:now,sessions:[...(n.sessions||[]),{ts:now,dur,note:'Focus session',mood}]}:n)})); }
-  skipFocus=()=>{ const el=Math.round(((this.state.focusTotal||0)-(this.state.focusLeft||0))/60); if(el>=1)this._logFocus(el,'ok'); this.closeFocus(); };
-  closeFocus=()=>{ if(this._focus){clearInterval(this._focus);this._focus=null;} this.setState({focusOpen:false,focusMinimized:false,focusRunning:false,focusDone:false,focusStepText:'',focusRouteNodeId:null}); };
-  completeFocus=()=>{ const dur=Math.round((this.state.focusTotal||0)/60), routeNodeId=this.state.focusRouteNodeId, interestId=this.state.focusNodeId; this._logFocus(dur,'up'); this.setState(s=>({focusRunning:false,focusDone:true,nodes:routeNodeId?s.nodes.map(n=>n.id===interestId&&n.routeMap?{...n,routeMap:{...n.routeMap,nodes:n.routeMap.nodes.map(r=>r.id===routeNodeId?{...r,done:true}:r)}}:n):s.nodes})); setTimeout(()=>this.setState({focusOpen:false,focusMinimized:false,focusDone:false,focusRouteNodeId:null}),2800); };
+  skipFocus=()=>{
+    if(this.state.focusDone)return;
+    const elapsedSeconds=Math.max(0,(this.state.focusTotal||0)-(this.state.focusLeft||0));
+    const elapsedMinutes=Math.max(1,Math.ceil(elapsedSeconds/60));
+    if(this._focus){clearInterval(this._focus);this._focus=null;}
+    this._logFocus(elapsedMinutes,'ok');
+    this.setState({focusRunning:false,focusDone:true});
+    if(this._focusDoneTimer)clearTimeout(this._focusDoneTimer);
+    this._focusDoneTimer=setTimeout(()=>{this._focusDoneTimer=null;this.closeFocus();},1400);
+  };
+  closeFocus=()=>{ if(this._focus){clearInterval(this._focus);this._focus=null;} if(this._focusDoneTimer){clearTimeout(this._focusDoneTimer);this._focusDoneTimer=null;} this.setState({focusOpen:false,focusMinimized:false,focusRunning:false,focusDone:false,focusStepText:'',focusRouteNodeId:null}); };
+  completeFocus=()=>{ const dur=Math.round((this.state.focusTotal||0)/60), routeNodeId=this.state.focusRouteNodeId, interestId=this.state.focusNodeId; this._logFocus(dur,'up'); this.setState(s=>({focusRunning:false,focusDone:true,nodes:routeNodeId?s.nodes.map(n=>n.id===interestId&&n.routeMap?{...n,routeMap:{...n.routeMap,nodes:n.routeMap.nodes.map(r=>r.id===routeNodeId?{...r,done:true}:r)}}:n):s.nodes})); if(this._focusDoneTimer)clearTimeout(this._focusDoneTimer); this._focusDoneTimer=setTimeout(()=>{this._focusDoneTimer=null;this.closeFocus();},2800); };
   closeResult = () => { this.setState({ resultOpen:false }); this.go('/canvas'); };
 
   // filter selections
