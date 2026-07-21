@@ -103,7 +103,7 @@ export default function DetailDrawer({ v }) {
                 <button onClick={sel.routeFrontier.onOpen} className="cursor-pointer border-none bg-transparent p-0 text-[10px] font-semibold text-[#806b35]">view map ↗</button>
               </div>
               <div className="flex items-start gap-2.5">
-                <button onClick={sel.routeFrontier.onToggle} aria-label={`complete route move ${sel.routeFrontier.text}`} className="mt-0.5 flex h-[19px] w-[19px] flex-none cursor-pointer items-center justify-center rounded-[6px] border-[1.5px] border-accent bg-paper-2 text-[11px] font-bold text-accent-deep">✓</button>
+                <button onClick={sel.routeFrontier.onToggle} aria-label={`complete route move ${sel.routeFrontier.text}`} title="mark complete" className="mt-0.5 flex h-[19px] w-[19px] flex-none cursor-pointer items-center justify-center rounded-[6px] border-[1.5px] border-accent bg-paper-2 transition-colors hover:bg-[rgba(122,154,111,.12)]"></button>
                 <div className="min-w-0">
                   <div className="text-[13px] font-semibold leading-[1.35] text-ink">{sel.routeFrontier.text}</div>
                   <div className="mt-1 text-[10px] leading-[1.35] text-muted-2">{sel.routeFrontier.duration&&<span className="mr-1.5 font-semibold text-accent-deep">~{sel.routeFrontier.duration} min</span>}done when: {sel.routeFrontier.doneWhen}</div>
