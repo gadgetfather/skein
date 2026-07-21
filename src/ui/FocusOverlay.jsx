@@ -1,12 +1,15 @@
 import React from 'react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { fadeBackdrop, modalSurface } from './motion/tokens';
 
 export default function FocusOverlay({ v }) {
   return (
     <>
       {/* focus / pomodoro takeover (after decide → start this) */}
-      {v.focusVisible && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-[rgba(43,48,52,.55)] p-3">
-          <div className="max-h-[calc(100dvh-24px)] w-full max-w-[760px] overflow-y-auto rounded-3xl border-[1.8px] border-ink-line bg-paper shadow-[8px_10px_0_rgba(0,0,0,.22)] animate-[popIn_.2s_ease]">
+      <AnimatePresence>{v.focusVisible && (
+        <m.div {...fadeBackdrop} className="fixed inset-0 z-60 flex items-center justify-center bg-[rgba(43,48,52,.55)] p-3">
+          <m.div {...modalSurface} className="max-h-[calc(100dvh-24px)] w-full max-w-[760px] overflow-y-auto rounded-3xl border-[1.8px] border-ink-line bg-paper shadow-[8px_10px_0_rgba(0,0,0,.22)]">
             <div className="flex items-center justify-between px-[22px] py-4 border-b-[1.5px] border-[#dfe4e6]">
               <div className="flex items-center gap-[9px]"><span className="h-[9px] w-[9px] rounded-full" style={{ background: v.focusColor }}></span><span className="text-xs text-[#7b8287]">{v.focusLabel} · <b className="text-ink">focus session</b></span></div>
               <button onClick={v.skipFocus} title="end & log" className="h-[30px] w-[30px] cursor-pointer text-base text-ink-line bg-panel border-[1.5px] border-ink-line rounded-lg">×</button>
@@ -50,18 +53,18 @@ export default function FocusOverlay({ v }) {
                 <div className="text-[15px] font-semibold text-accent-deep">logged · streak +1 · nicely done</div>
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </m.div>
+        </m.div>
+      )}</AnimatePresence>
 
       {/* minimized focus pill on canvas */}
-      {v.focusPill && (
-        <div onClick={v.resumeFromPill} className="fixed right-3 bottom-[86px] left-3 z-22 flex cursor-pointer items-center justify-center gap-2.5 px-3.5 py-[9px] text-white bg-ink rounded-[14px] shadow-[3px_4px_0_rgba(0,0,0,.25)] sm:right-auto sm:bottom-[22px] sm:left-6 sm:justify-start">
+      <AnimatePresence>{v.focusPill && (
+        <m.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:6}} onClick={v.resumeFromPill} className="fixed right-3 bottom-[86px] left-3 z-22 flex cursor-pointer items-center justify-center gap-2.5 px-3.5 py-[9px] text-white bg-ink rounded-[14px] shadow-[3px_4px_0_rgba(0,0,0,.25)] sm:right-auto sm:bottom-[22px] sm:left-6 sm:justify-start">
           <span className="h-3.5 w-3.5 rounded-full border-[1.5px] border-white" style={{ background: v.focusColor }}></span>
           <span className="text-xs">{v.focusLabel} · <b className="font-mono">{v.focusTimeTxt}</b></span>
           <span className="text-[11px] opacity-70">tap to resume ▸</span>
-        </div>
-      )}
+        </m.div>
+      )}</AnimatePresence>
     </>
   );
 }

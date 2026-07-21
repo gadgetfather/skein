@@ -1,4 +1,5 @@
 import './globals.css';
+import MotionProvider from '../ui/motion/MotionProvider';
 
 export const metadata = {
   title: 'Skein — parallel interests, one calm canvas',
@@ -20,7 +21,7 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body><MotionProvider>{children}</MotionProvider></body>
     </html>
   );
 }

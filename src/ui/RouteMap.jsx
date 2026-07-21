@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
 import CalmLoader from './CalmLoader';
+import { motionEase, popoverSurface } from './motion/tokens';
 
 const TYPE_COLORS = {
   task:'#7a9a6f', milestone:'#6f8aa8', capability:'#927696', resource:'#b0975a',
@@ -215,7 +218,7 @@ export default function RouteMap({ v }) {
     setPanning(false);
   };
   return (
-    <div className="fixed inset-0 z-[55] flex h-dvh flex-col overflow-hidden bg-paper animate-[fadeUp_.18s_ease]">
+    <m.div initial={{opacity:0,scale:.995}} animate={{opacity:1,scale:1}} exit={{opacity:0,scale:.995}} transition={{duration:.22,ease:motionEase.out}} className="fixed inset-0 z-[55] flex h-dvh flex-col overflow-hidden bg-paper">
       <div className="relative z-10 flex flex-none flex-col gap-2 border-b-[1.6px] border-ink-line bg-[rgba(247,248,248,.94)] px-3 py-3 shadow-[0_3px_0_rgba(58,64,69,.06)] backdrop-blur-[5px] sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-3.5">
         <div className="flex min-w-0 items-center gap-3">
           <button onClick={r.onClose} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line bg-paper-2 text-lg text-ink">←</button>
@@ -270,7 +273,7 @@ export default function RouteMap({ v }) {
         {map.assumptions?.length>0&&<details data-route-overlay className="absolute right-3 bottom-3 left-3 z-[8] rounded-[12px_9px_13px_10px] border-[1.5px] border-ink-line bg-panel p-3 shadow-[3px_4px_0_rgba(58,64,69,.12)] sm:right-5 sm:bottom-5 sm:left-auto sm:w-[310px]"><summary className="cursor-pointer text-[10px] font-bold uppercase tracking-[.07em] text-muted">{map.assumptions.length} assumption{map.assumptions.length===1?'':'s'} to check</summary><ul className="mt-2 space-y-1.5 pl-4 text-[11px] leading-[1.4] text-muted-2">{map.assumptions.map((a,i)=><li key={i} className="list-disc">{a}</li>)}</ul></details>}
       </div>
 
-      {r.addOpen&&<div className="fixed bottom-5 left-1/2 z-[60] w-[min(620px,calc(100vw-32px))] -translate-x-1/2 rounded-[16px_12px_17px_13px] border-[1.8px] border-ink-line bg-panel p-4 shadow-[5px_6px_0_rgba(58,64,69,.18)] animate-[fadeUp_.16s_ease]"><div className="mb-2 flex items-center justify-between"><span className="font-hand text-[21px] font-bold text-ink">what does “{r.addParentLabel}” unlock?</span><button onClick={r.onCancelAdd} className="cursor-pointer border-none bg-transparent text-lg text-muted">×</button></div><input autoFocus value={r.addLabel} onChange={r.onAddLabel} onKeyDown={e=>{if(e.key==='Enter')r.onAddNode();if(e.key==='Escape')r.onCancelAdd();}} placeholder="a concrete task, capability, resource, or milestone…" className="w-full rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line bg-paper-2 px-3 py-2.5 text-[13px] text-ink outline-none"/><div className="mt-2.5 flex flex-wrap items-center gap-1.5">{r.typeChips.map(t=><button key={t.type} onClick={t.onSelect} className="cursor-pointer rounded-[8px] border-[1.3px] px-2 py-1 text-[10px] font-semibold" style={{background:t.active?(TYPE_COLORS[t.type]||'#7a9a6f'):'#fbfbfa',borderColor:t.active?(TYPE_COLORS[t.type]||'#7a9a6f'):'#b7bec1',color:t.active?'#fff':'#2b3034'}}>{t.label}</button>)}<span className="flex-1"></span><button onClick={r.onAddNode} className="cursor-pointer rounded-[9px_7px_10px_8px] border-[1.5px] border-ink-line bg-accent px-3 py-1.5 text-xs font-bold text-white">add to route →</button></div></div>}
-    </div>
+      <AnimatePresence>{r.addOpen&&<div className="fixed bottom-5 left-1/2 z-[60] w-[min(620px,calc(100vw-32px))] -translate-x-1/2"><m.div {...popoverSurface} className="rounded-[16px_12px_17px_13px] border-[1.8px] border-ink-line bg-panel p-4 shadow-[5px_6px_0_rgba(58,64,69,.18)]"><div className="mb-2 flex items-center justify-between"><span className="font-hand text-[21px] font-bold text-ink">what does “{r.addParentLabel}” unlock?</span><button onClick={r.onCancelAdd} className="cursor-pointer border-none bg-transparent text-lg text-muted">×</button></div><input autoFocus value={r.addLabel} onChange={r.onAddLabel} onKeyDown={e=>{if(e.key==='Enter')r.onAddNode();if(e.key==='Escape')r.onCancelAdd();}} placeholder="a concrete task, capability, resource, or milestone…" className="w-full rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line bg-paper-2 px-3 py-2.5 text-[13px] text-ink outline-none"/><div className="mt-2.5 flex flex-wrap items-center gap-1.5">{r.typeChips.map(t=><button key={t.type} onClick={t.onSelect} className="cursor-pointer rounded-[8px] border-[1.3px] px-2 py-1 text-[10px] font-semibold" style={{background:t.active?(TYPE_COLORS[t.type]||'#7a9a6f'):'#fbfbfa',borderColor:t.active?(TYPE_COLORS[t.type]||'#7a9a6f'):'#b7bec1',color:t.active?'#fff':'#2b3034'}}>{t.label}</button>)}<span className="flex-1"></span><button onClick={r.onAddNode} className="cursor-pointer rounded-[9px_7px_10px_8px] border-[1.5px] border-ink-line bg-accent px-3 py-1.5 text-xs font-bold text-white">add to route →</button></div></m.div></div>}</AnimatePresence>
+    </m.div>
   );
 }

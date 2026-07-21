@@ -1,12 +1,14 @@
 import React from 'react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { fadeBackdrop, modalSurface, panelSurface } from './motion/tokens';
 
-export default function ExpandedDetail({ v }) {
-  if (!v.expandedId || !v.exp) return null;
+function ExpandedDetailContent({ v }) {
   const exp = v.exp;
   return (
     <>
-      <div onClick={v.closeExpanded} className="fixed inset-0 z-[32] bg-[rgba(43,48,52,.28)] backdrop-blur-[1px]"></div>
-      <div className="fixed inset-0 z-[33] flex w-full flex-col bg-[#f4f6f7] animate-[fadeUp_.2s_ease] sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:w-[min(680px,52vw)] sm:border-l-[1.8px] sm:border-ink-line sm:shadow-[-8px_0_0_rgba(58,64,69,.08)]">
+      <m.div {...fadeBackdrop} onClick={v.closeExpanded} className="fixed inset-0 z-[32] bg-[rgba(43,48,52,.28)] backdrop-blur-[1px]" />
+      <m.div {...panelSurface} className="fixed inset-0 z-[33] flex w-full flex-col bg-[#f4f6f7] sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:w-[min(680px,52vw)] sm:border-l-[1.8px] sm:border-ink-line sm:shadow-[-8px_0_0_rgba(58,64,69,.08)]">
         <div className="flex-none px-5 pt-5 pb-4 sm:px-[30px]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-[9px]"><span className="h-[11px] w-[11px] rounded-full" style={{ background: exp.color }}></span><span className="text-[11px] uppercase tracking-[.07em] text-muted">{exp.groupLabel}</span></div>
@@ -127,10 +129,11 @@ export default function ExpandedDetail({ v }) {
         </div>
 
         {/* log session form */}
-        {v.logOpen && (
+        <AnimatePresence>{v.logOpen && (
           <>
-            <div onClick={v.closeLog} className="absolute inset-0 z-[5] bg-[rgba(43,48,52,.3)]"></div>
-            <div className="absolute top-1/2 left-1/2 z-[6] max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[360px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border-[1.8px] border-ink-line bg-panel p-5 shadow-[6px_8px_0_rgba(58,64,69,.18)] sm:p-[22px]">
+            <m.div {...fadeBackdrop} onClick={v.closeLog} className="absolute inset-0 z-[5] bg-[rgba(43,48,52,.3)]" />
+            <div className="pointer-events-none absolute inset-0 z-[6] flex items-center justify-center p-3">
+            <m.div {...modalSurface} className="pointer-events-auto max-h-[calc(100dvh-24px)] w-full max-w-[360px] overflow-y-auto rounded-2xl border-[1.8px] border-ink-line bg-panel p-5 shadow-[6px_8px_0_rgba(58,64,69,.18)] sm:p-[22px]">
               <div className="mb-3.5 font-hand text-[26px] font-bold text-ink">log a session</div>
               <div className="mb-1.5 text-xs text-muted">minutes</div>
               <input value={v.logDur} onChange={v.onLogDur} type="number" className="mb-3.5 w-full rounded-[10px] border-[1.6px] border-ink-line bg-paper-2 px-[11px] py-[9px] text-[15px] text-ink outline-none"/>
@@ -146,10 +149,19 @@ export default function ExpandedDetail({ v }) {
                 <button onClick={v.submitLog} className="flex-1 cursor-pointer rounded-[11px_9px_12px_9px] border-[1.6px] border-ink-line bg-accent p-[11px] text-[15px] font-bold text-white shadow-[2px_3px_0_rgba(58,64,69,.18)]">save session</button>
                 <button onClick={v.closeLog} className="cursor-pointer rounded-[9px_11px_8px_12px] border-[1.6px] border-ink-line bg-paper-2 px-4 py-[11px] text-sm font-semibold text-ink">cancel</button>
               </div>
+            </m.div>
             </div>
           </>
-        )}
-      </div>
+        )}</AnimatePresence>
+      </m.div>
     </>
+  );
+}
+
+export default function ExpandedDetail({ v }) {
+  return (
+    <AnimatePresence>
+      {v.expandedId && v.exp && <ExpandedDetailContent key={v.expandedId} v={v} />}
+    </AnimatePresence>
   );
 }

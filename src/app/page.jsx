@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Waitlist from './Waitlist';
+import { HeroItem, HeroSequence, PreviewItem, PreviewPath, PreviewSequence, ViewReveal } from '../ui/motion/LandingMotion';
 
 export default function Landing() {
   return (
@@ -23,19 +24,19 @@ export default function Landing() {
       </div>
 
       {/* HERO */}
-      <div className="mx-auto max-w-[760px] px-4 pt-12 text-center sm:px-6 sm:pt-19">
-        <div className="mb-[22px] inline-block rounded-[20px] border-[1.4px] border-accent bg-[rgba(122,154,111,.12)] px-4 py-1 font-hand text-xl text-accent">for the multi-passionate</div>
-        <div className="font-hand text-[48px] font-bold leading-[1.02] text-ink sm:text-[68px]">Untangle your parallel interests.</div>
-        <div className="mx-auto mt-[18px] max-w-[560px] text-[15px] leading-[1.55] text-muted-2 sm:text-[17px]">Brain-dump every project, hobby, and someday-maybe. Skein weaves them into one calm map — then, when you're overwhelmed, quietly tells you the single thing to do next.</div>
-        <div className="mt-[30px] flex items-center justify-center gap-2.5">
+      <HeroSequence className="mx-auto max-w-[760px] px-4 pt-12 text-center sm:px-6 sm:pt-19">
+        <HeroItem className="mb-[22px]"><div className="inline-block rounded-[20px] border-[1.4px] border-accent bg-[rgba(122,154,111,.12)] px-4 py-1 font-hand text-xl text-accent">for the multi-passionate</div></HeroItem>
+        <HeroItem className="font-hand text-[48px] font-bold leading-[1.02] text-ink sm:text-[68px]">Untangle your parallel interests.</HeroItem>
+        <HeroItem className="mx-auto mt-[18px] max-w-[560px] text-[15px] leading-[1.55] text-muted-2 sm:text-[17px]">Brain-dump every project, hobby, and someday-maybe. Skein weaves them into one calm map — then, when you're overwhelmed, quietly tells you the single thing to do next.</HeroItem>
+        <HeroItem className="mt-[30px] flex items-center justify-center gap-2.5">
           <Waitlist />
-        </div>
-        <div className="mt-3.5"><Link href="/canvas" className="border-b-[1.5px] border-dashed border-accent pb-px text-sm font-semibold text-accent hover:text-accent">or try the live canvas →</Link></div>
-        <div className="mt-2.5 text-xs text-[#a4abae]">free while in beta · no credit card</div>
-      </div>
+        </HeroItem>
+        <HeroItem className="mt-3.5"><Link href="/canvas" className="border-b-[1.5px] border-dashed border-accent pb-px text-sm font-semibold text-accent hover:text-accent">or try the live canvas →</Link></HeroItem>
+        <HeroItem className="mt-2.5 text-xs text-[#a4abae]">free while in beta · no credit card</HeroItem>
+      </HeroSequence>
 
       {/* CANVAS PREVIEW */}
-      <div className="mx-auto mt-9 max-w-[1000px] px-4 sm:mt-11 sm:px-6">
+      <PreviewSequence className="mx-auto mt-9 max-w-[1000px] px-4 sm:mt-11 sm:px-6">
         <div className="overflow-hidden rounded-2xl border-[1.8px] border-ink-line bg-[#f4f6f7] shadow-[6px_8px_0_rgba(58,64,69,.12)]">
           <div className="flex items-center gap-[7px] border-b-[1.5px] border-[#dfe4e6] px-[15px] py-[11px]">
             <span className="h-[11px] w-[11px] rounded-full border border-ink-line bg-[#e0938a]"></span>
@@ -44,28 +45,29 @@ export default function Landing() {
             <span className="ml-3 text-xs text-muted">skein · your canvas</span>
           </div>
           <div className="relative h-[270px] bg-paper bg-[radial-gradient(#c8ced1_1px,transparent_1px)] bg-[size:22px_22px] sm:h-[340px]">
-            <div className="absolute left-4 top-12 h-[180px] w-[180px] rounded-[26px_20px_28px_22px] border-[1.4px] border-dashed border-[rgba(122,154,111,.5)] bg-[rgba(122,154,111,.06)] [filter:url(#rough)] sm:left-[70px] sm:w-[220px]"></div>
-            <div className="absolute left-7 top-8 flex items-center gap-[7px] rounded-[9px_8px_10px_8px] border-[1.4px] border-[rgba(122,154,111,.6)] bg-[#f4f6f7] px-2.5 py-[3px] sm:left-[84px]"><span className="h-2 w-2 rounded-full bg-accent"></span><span className="font-hand text-[15px] font-bold text-muted-2">learning</span></div>
-            <div className="absolute right-3 top-[125px] h-[130px] w-[180px] rounded-[24px_22px_26px_20px] border-[1.4px] border-dashed border-[rgba(111,138,168,.5)] bg-[rgba(111,138,168,.06)] [filter:url(#rough)] sm:right-[120px] sm:top-[150px] sm:h-[150px] sm:w-[220px]"></div>
-            <div className="absolute right-8 top-[111px] flex items-center gap-[7px] rounded-[9px_8px_10px_8px] border-[1.4px] border-[rgba(111,138,168,.6)] bg-[#f4f6f7] px-2.5 py-[3px] sm:right-[250px] sm:top-[134px]"><span className="h-2 w-2 rounded-full bg-[#6f8aa8]"></span><span className="font-hand text-[15px] font-bold text-muted-2">build &amp; ship</span></div>
-            <svg className="absolute inset-0 h-full w-full overflow-visible" fill="none" stroke="#9aa1a5" strokeWidth="1.3" strokeLinecap="round"><path d="M190 130 C340 180 500 150 620 200" opacity="0.8" filter="url(#edge)"/><path d="M170 190 C300 240 430 250 560 250" opacity="0.7" filter="url(#edge)"/></svg>
-            <div className="absolute left-7 top-[66px] w-[140px] rounded-[11px_8px_12px_7px] border-[1.6px] border-ink-line bg-paper-2 px-3 py-[9px] shadow-[2px_3px_0_rgba(58,64,69,.12)] sm:left-[92px] sm:w-[150px]"><div className="text-sm font-semibold">Learn Japanese</div><div className="mt-1.5 flex gap-[3px]"><span className="h-[5px] w-[5px] rounded-full bg-accent"></span><span className="h-[5px] w-[5px] rounded-full bg-accent"></span><span className="h-[5px] w-[5px] rounded-full bg-accent"></span></div></div>
-            <div className="absolute left-10 top-[150px] w-[140px] rounded-[9px_11px_8px_12px] border-[1.6px] border-ink-line bg-paper-2 px-3 py-[9px] shadow-[2px_3px_0_rgba(58,64,69,.12)] sm:left-[110px] sm:w-[150px]"><div className="text-sm font-semibold">Read more</div><div className="mt-1.5 flex gap-[3px]"><span className="h-[5px] w-[5px] rounded-full bg-accent"></span><span className="h-[5px] w-[5px] rounded-full bg-[#cbd0d2]"></span><span className="h-[5px] w-[5px] rounded-full bg-[#cbd0d2]"></span></div></div>
-            <div className="absolute right-6 top-[155px] w-[140px] rounded-[10px_9px_11px_8px] border-[1.6px] border-ink-line bg-paper-2 px-3 py-[9px] shadow-[2px_3px_0_rgba(58,64,69,.12)] sm:right-[150px] sm:top-[180px] sm:w-[150px]"><div className="text-sm font-semibold">Ship the game</div><div className="mt-1.5 flex gap-[3px]"><span className="h-[5px] w-[5px] rounded-full bg-[#6f8aa8]"></span><span className="h-[5px] w-[5px] rounded-full bg-[#6f8aa8]"></span><span className="h-[5px] w-[5px] rounded-full bg-[#6f8aa8]"></span></div></div>
-            <div className="absolute bottom-[22px] left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-[12px_9px_12px_9px] border-[1.6px] border-ink-line bg-accent px-4 py-[9px] text-sm font-semibold text-white shadow-[2px_2px_0_rgba(58,64,69,.18)] animate-[floaty2_6s_ease-in-out_infinite]">🎲 decide for me</div>
+            <PreviewItem className="absolute left-4 top-12 h-[180px] w-[180px] rounded-[26px_20px_28px_22px] border-[1.4px] border-dashed border-[rgba(122,154,111,.5)] bg-[rgba(122,154,111,.06)] [filter:url(#rough)] sm:left-[70px] sm:w-[220px]" />
+            <PreviewItem className="absolute left-7 top-8 flex items-center gap-[7px] rounded-[9px_8px_10px_8px] border-[1.4px] border-[rgba(122,154,111,.6)] bg-[#f4f6f7] px-2.5 py-[3px] sm:left-[84px]"><span className="h-2 w-2 rounded-full bg-accent"></span><span className="font-hand text-[15px] font-bold text-muted-2">learning</span></PreviewItem>
+            <PreviewItem className="absolute right-3 top-[125px] h-[130px] w-[180px] rounded-[24px_22px_26px_20px] border-[1.4px] border-dashed border-[rgba(111,138,168,.5)] bg-[rgba(111,138,168,.06)] [filter:url(#rough)] sm:right-[120px] sm:top-[150px] sm:h-[150px] sm:w-[220px]" />
+            <PreviewItem className="absolute right-8 top-[111px] flex items-center gap-[7px] rounded-[9px_8px_10px_8px] border-[1.4px] border-[rgba(111,138,168,.6)] bg-[#f4f6f7] px-2.5 py-[3px] sm:right-[250px] sm:top-[134px]"><span className="h-2 w-2 rounded-full bg-[#6f8aa8]"></span><span className="font-hand text-[15px] font-bold text-muted-2">build &amp; ship</span></PreviewItem>
+            <svg className="absolute inset-0 h-full w-full overflow-visible" fill="none" stroke="#9aa1a5" strokeWidth="1.3" strokeLinecap="round"><PreviewPath d="M190 130 C340 180 500 150 620 200" opacity={0.8} filter="url(#edge)"/><PreviewPath d="M170 190 C300 240 430 250 560 250" opacity={0.7} filter="url(#edge)"/></svg>
+            <PreviewItem className="absolute left-7 top-[66px] w-[140px] rounded-[11px_8px_12px_7px] border-[1.6px] border-ink-line bg-paper-2 px-3 py-[9px] shadow-[2px_3px_0_rgba(58,64,69,.12)] sm:left-[92px] sm:w-[150px]"><div className="text-sm font-semibold">Learn Japanese</div><div className="mt-1.5 flex gap-[3px]"><span className="h-[5px] w-[5px] rounded-full bg-accent"></span><span className="h-[5px] w-[5px] rounded-full bg-accent"></span><span className="h-[5px] w-[5px] rounded-full bg-accent"></span></div></PreviewItem>
+            <PreviewItem className="absolute left-10 top-[150px] w-[140px] rounded-[9px_11px_8px_12px] border-[1.6px] border-ink-line bg-paper-2 px-3 py-[9px] shadow-[2px_3px_0_rgba(58,64,69,.12)] sm:left-[110px] sm:w-[150px]"><div className="text-sm font-semibold">Read more</div><div className="mt-1.5 flex gap-[3px]"><span className="h-[5px] w-[5px] rounded-full bg-accent"></span><span className="h-[5px] w-[5px] rounded-full bg-[#cbd0d2]"></span><span className="h-[5px] w-[5px] rounded-full bg-[#cbd0d2]"></span></div></PreviewItem>
+            <PreviewItem className="absolute right-6 top-[155px] w-[140px] rounded-[10px_9px_11px_8px] border-[1.6px] border-ink-line bg-paper-2 px-3 py-[9px] shadow-[2px_3px_0_rgba(58,64,69,.12)] sm:right-[150px] sm:top-[180px] sm:w-[150px]"><div className="text-sm font-semibold">Ship the game</div><div className="mt-1.5 flex gap-[3px]"><span className="h-[5px] w-[5px] rounded-full bg-[#6f8aa8]"></span><span className="h-[5px] w-[5px] rounded-full bg-[#6f8aa8]"></span><span className="h-[5px] w-[5px] rounded-full bg-[#6f8aa8]"></span></div></PreviewItem>
+            <PreviewItem className="absolute bottom-[22px] left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-[12px_9px_12px_9px] border-[1.6px] border-ink-line bg-accent px-4 py-[9px] text-sm font-semibold text-white shadow-[2px_2px_0_rgba(58,64,69,.18)]">🎲 decide for me</PreviewItem>
           </div>
         </div>
-      </div>
+      </PreviewSequence>
 
       {/* PROBLEM -> SHIFT */}
-      <div className="mx-auto mt-16 max-w-[820px] px-4 text-center sm:mt-24 sm:px-6">
+      <ViewReveal className="mx-auto mt-16 max-w-[820px] px-4 text-center sm:mt-24 sm:px-6">
         <div className="text-[15px] text-[#a4abae]">sound familiar?</div>
         <div className="mt-2 font-hand text-[31px] font-bold leading-[1.15] text-ink sm:text-[38px]">"I have a dozen things I care about — and on the days I could do any of them, I freeze and do none."</div>
         <div className="mt-[18px] text-base leading-[1.6] text-muted-2">Skein isn't another to-do list that guilt-trips you. It holds all your interests in one gentle place, learns what you've been feeding and neglecting, and removes the hardest part — <b className="text-ink">choosing</b> — so you can just begin.</div>
-      </div>
+      </ViewReveal>
 
       {/* HOW IT WORKS */}
-      <div id="how" className="mx-auto mt-16 max-w-[1120px] px-4 sm:mt-24 sm:px-6">
+      <ViewReveal className="mx-auto mt-16 max-w-[1120px] px-4 sm:mt-24 sm:px-6">
+        <div id="how">
         <div className="mb-10 text-center"><div className="font-hand text-[40px] font-bold text-ink">How it works</div><div className="mt-1.5 text-[15px] text-[#7b8287]">four steps, about a minute.</div></div>
         <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 sm:gap-[18px] lg:grid-cols-4">
           <div className="rounded-[14px_11px_13px_10px] border-[1.6px] border-ink-line bg-paper-2 p-[22px] shadow-[3px_4px_0_rgba(58,64,69,.1)]">
@@ -89,10 +91,12 @@ export default function Landing() {
             <div className="mt-1.5 text-sm leading-[1.5] text-muted-2">Start a focus session, then it logs itself — building streaks and your progress.</div>
           </div>
         </div>
-      </div>
+        </div>
+      </ViewReveal>
 
       {/* FEATURES */}
-      <div id="features" className="mx-auto mt-16 max-w-[1120px] px-4 sm:mt-24 sm:px-6">
+      <ViewReveal className="mx-auto mt-16 max-w-[1120px] px-4 sm:mt-24 sm:px-6">
+        <div id="features">
         <div className="mb-10 text-center"><div className="font-hand text-[40px] font-bold text-ink">Everything in one calm place</div></div>
         <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 md:gap-[22px]">
           <div className="rounded-2xl border-[1.6px] border-ink-line bg-panel p-[26px] shadow-[3px_4px_0_rgba(58,64,69,.1)]">
@@ -135,7 +139,8 @@ export default function Landing() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </ViewReveal>
 
       {/* FAQ */}
       <div id="faq" className="mx-auto mt-16 max-w-[820px] px-4 sm:mt-24 sm:px-6">
@@ -161,7 +166,7 @@ export default function Landing() {
       </div>
 
       {/* WAITLIST FOOTER */}
-      <div className="mx-auto mt-16 max-w-[1120px] px-4 sm:mt-24 sm:px-6">
+      <ViewReveal className="mx-auto mt-16 max-w-[1120px] px-4 sm:mt-24 sm:px-6">
         <div className="rounded-3xl border-[1.8px] border-ink-line bg-ink px-5 py-10 text-center shadow-[6px_8px_0_rgba(0,0,0,.16)] sm:px-10 sm:py-14">
           <div className="font-hand text-[38px] font-bold leading-[1.05] text-white sm:text-[46px]">Quiet the noise. Weave your interests.</div>
           <div className="mt-3 text-base text-[#aab1b4]">Join the waitlist for early access — or start weaving right now.</div>
@@ -170,7 +175,7 @@ export default function Landing() {
             <Link href="/canvas" className="border-b-[1.5px] border-dashed border-accent pb-px text-[15px] font-semibold text-[#dfe4e6] hover:text-[#dfe4e6]">try the live canvas →</Link>
           </div>
         </div>
-      </div>
+      </ViewReveal>
 
       {/* FOOTER */}
       <div className="mx-auto flex max-w-[1120px] flex-col items-center justify-between gap-3 px-4 pt-9 pb-12 text-center sm:flex-row sm:px-6 sm:text-left">

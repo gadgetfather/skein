@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { AnimatePresence } from 'motion/react';
 import Toolbar from './ui/Toolbar';
 import DecideFlow from './ui/DecideFlow';
 import BrainDump from './ui/BrainDump';
@@ -1269,7 +1270,9 @@ export default class App extends React.Component {
         <DecideFlow v={v}/>
         <BrainDump v={v}/>
         <DetailDrawer v={v}/>
-        <RouteMap v={v}/>
+        <AnimatePresence>
+          {v.route && <RouteMap key={v.route.interest.id} v={v}/>}
+        </AnimatePresence>
 
         {/* wordmark */}
         <div className="pointer-events-none fixed top-4 left-4 z-20 flex items-baseline gap-2.5 sm:top-5 sm:left-6">

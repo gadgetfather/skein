@@ -8,4 +8,5 @@ next-env.d.ts
 specs/*
 !specs/SPEC-living-directions.md
 !specs/SPEC-living-directions-implementation.md
+!specs/SPEC-motion-system.md
 .env*

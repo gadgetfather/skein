@@ -1,4 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { fadeBackdrop, panelSurface, popoverSurface } from './motion/tokens';
 
 const directionMeta = {
   directed: { icon:'↗', label:'directed' },
@@ -6,7 +9,7 @@ const directionMeta = {
   unclear: { icon:'?', label:'unclear' },
 };
 
-export default function DetailDrawer({ v }) {
+function DetailDrawerContent({ v }) {
   const [groupOpen,setGroupOpen]=useState(false);
   const [groupQuery,setGroupQuery]=useState('');
   const [newGroupName,setNewGroupName]=useState('');
@@ -20,7 +23,6 @@ export default function DetailDrawer({ v }) {
     window.addEventListener('keydown',onKeyDown);
     return ()=>{document.removeEventListener('pointerdown',onPointerDown);window.removeEventListener('keydown',onKeyDown);};
   },[groupOpen]);
-  if (!v.selOpen || !v.sel) return null;
   const sel = v.sel;
   const direction = directionMeta[sel.directionState] || directionMeta.unclear;
   const currentGroup=sel.clusterChips.find(c=>c.active)||sel.clusterChips[0];
@@ -30,8 +32,8 @@ export default function DetailDrawer({ v }) {
 
   return (
     <>
-      <div onClick={v.closeDrawer} className="fixed inset-0 z-30 bg-[rgba(43,48,52,.22)]"></div>
-      <aside aria-label={`${sel.label} interest details`} className="fixed inset-0 z-[31] flex w-full flex-col overflow-y-auto bg-[#f4f6f7] px-5 py-5 pb-[max(20px,env(safe-area-inset-bottom))] animate-[fadeUp_.18s_ease] sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:w-[400px] sm:border-l-[1.8px] sm:border-ink-line sm:px-6 sm:shadow-[-6px_0_0_rgba(58,64,69,.08)]">
+      <m.div {...fadeBackdrop} onClick={v.closeDrawer} className="fixed inset-0 z-30 bg-[rgba(43,48,52,.22)]" />
+      <m.aside {...panelSurface} aria-label={`${sel.label} interest details`} className="fixed inset-0 z-[31] flex w-full flex-col overflow-y-auto bg-[#f4f6f7] px-5 py-5 pb-[max(20px,env(safe-area-inset-bottom))] sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:w-[400px] sm:border-l-[1.8px] sm:border-ink-line sm:px-6 sm:shadow-[-6px_0_0_rgba(58,64,69,.08)]">
         <header className="mb-5">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] font-semibold uppercase tracking-[.1em] text-muted">interest</span>
@@ -55,14 +57,14 @@ export default function DetailDrawer({ v }) {
               <span aria-hidden="true" className={`ml-auto text-[10px] text-muted transition-transform ${groupOpen?'rotate-180':''}`}>⌄</span>
             </button>
 
-            {groupOpen&&<div className="absolute top-[calc(100%+8px)] right-0 left-0 z-[55] rounded-[14px_10px_15px_11px] border-[1.6px] border-ink-line bg-panel p-3 shadow-[4px_5px_0_rgba(58,64,69,.16)] animate-[fadeUp_.14s_ease]">
+            <AnimatePresence>{groupOpen&&<m.div {...popoverSurface} className="absolute top-[calc(100%+8px)] right-0 left-0 z-[55] rounded-[14px_10px_15px_11px] border-[1.6px] border-ink-line bg-panel p-3 shadow-[4px_5px_0_rgba(58,64,69,.16)]">
               <label className="relative block"><span className="sr-only">Search groups</span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="absolute top-1/2 left-3 -translate-y-1/2 text-muted"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg><input autoFocus value={groupQuery} onChange={e=>setGroupQuery(e.target.value)} placeholder="find a group…" className="w-full rounded-[9px_7px_10px_8px] border-[1.4px] border-[#b7bec1] bg-paper-2 py-2 pr-3 pl-9 text-[12px] text-ink outline-none focus:border-accent"/></label>
               <div role="listbox" aria-label="Groups" className="mt-2 max-h-[190px] space-y-1 overflow-y-auto pr-1">
                 {visibleGroups.map(c=><button key={c.key} role="option" aria-selected={c.active} onClick={()=>{c.onSelect();setGroupOpen(false);setGroupQuery('');}} className="flex w-full cursor-pointer items-center gap-2.5 rounded-[8px_7px_9px_7px] border-none px-2.5 py-2 text-left text-[11px] font-semibold transition-colors hover:bg-[rgba(122,154,111,.09)]" style={{background:c.active?'rgba(122,154,111,.11)':'transparent',color:c.active?'#5c7a52':'#2b3034'}}><span aria-hidden="true" className="h-2.5 w-2.5 flex-none rounded-full border border-ink-line/25" style={{background:c.tone}}></span><span className="min-w-0 flex-1 truncate">{c.label}</span>{c.active&&<span className="font-bold text-accent-deep">✓</span>}</button>)}
                 {!visibleGroups.length&&<div className="px-2.5 py-3 text-center text-[11px] text-muted">No matching group.</div>}
               </div>
               <form onSubmit={createGroup} className="mt-2 flex gap-2 border-t-[1px] border-dashed border-[#d2d7d9] pt-2"><input value={newGroupName} onChange={e=>setNewGroupName(e.target.value)} placeholder="new group name…" maxLength={48} className="min-w-0 flex-1 rounded-[8px_7px_9px_7px] border-[1.3px] border-[#b7bec1] bg-paper-2 px-2.5 py-1.5 text-[11px] text-ink outline-none focus:border-accent"/><button type="submit" disabled={!newGroupName.trim()} className="cursor-pointer rounded-[8px_7px_9px_7px] border-[1.3px] border-ink-line bg-accent px-2.5 py-1.5 text-[10px] font-bold text-white disabled:cursor-default disabled:opacity-45">+ create</button></form>
-            </div>}
+            </m.div>}</AnimatePresence>
           </div>
           <div className="w-[76px] flex-none">
             <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[.08em] text-muted">energy</div>
@@ -170,7 +172,15 @@ export default function DetailDrawer({ v }) {
             <button onClick={v.deleteSelected} className="mt-3 cursor-pointer border-none bg-transparent p-0 text-[10px] font-semibold text-[#9a6d67] underline decoration-dashed underline-offset-4">delete this interest</button>
           </div>
         </details>
-      </aside>
+      </m.aside>
     </>
+  );
+}
+
+export default function DetailDrawer({ v }) {
+  return (
+    <AnimatePresence>
+      {v.selOpen && v.sel && <DetailDrawerContent key={v.sel.id} v={v} />}
+    </AnimatePresence>
   );
 }

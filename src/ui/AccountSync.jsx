@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { popoverSurface } from './motion/tokens';
 
 const statusCopy = {
   local: 'saved on this device',
@@ -62,8 +65,8 @@ export default function AccountSync({ sync, placement = 'canvas' }) {
         )}
       </button>
 
-      {open && (
-        <section aria-label="Account and cloud sync" className={`${compact ? 'fixed top-[60px] right-3 w-[calc(100vw-24px)] max-w-[310px] md:absolute md:top-[calc(100%+8px)] md:right-0 md:w-[310px]' : 'absolute top-[calc(100%+8px)] right-0 w-[310px]'} rounded-[15px_11px_16px_12px] border-[1.6px] border-ink-line bg-panel p-4 shadow-[4px_5px_0_rgba(58,64,69,.15)] animate-[fadeUp_.14s_ease]`}>
+      <AnimatePresence>{open && (
+        <m.section {...popoverSurface} aria-label="Account and cloud sync" className={`${compact ? 'fixed top-[60px] right-3 w-[calc(100vw-24px)] max-w-[310px] md:absolute md:top-[calc(100%+8px)] md:right-0 md:w-[310px]' : 'absolute top-[calc(100%+8px)] right-0 w-[310px]'} rounded-[15px_11px_16px_12px] border-[1.6px] border-ink-line bg-panel p-4 shadow-[4px_5px_0_rgba(58,64,69,.15)]`}>
           <div className="font-hand text-[22px] font-bold leading-none text-ink">keep your skein with you</div>
 
           {!sync.configured ? (
@@ -103,8 +106,8 @@ export default function AccountSync({ sync, placement = 'canvas' }) {
               {sync.error && <p role="alert" className="mt-2 text-[10px] leading-[1.4] text-[#a56f8f]">{sync.error}</p>}
             </form>
           )}
-        </section>
-      )}
+        </m.section>
+      )}</AnimatePresence>
     </div>
   );
 }
