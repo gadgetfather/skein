@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import * as m from 'motion/react-m';
 import CalmLoader from './CalmLoader';
@@ -36,10 +36,13 @@ function RouteNode({ node, pos, zoom }) {
   const round=['resource','capability'].includes(node.type);
   const locked=!terminal&&!node.done&&!node.reachable;
   const canAdd=node.type!=='destination'&&!locked;
+  const hasDetails=!terminal&&!locked&&!!(node.description||node.doneWhen||node.durationMinutes);
+  const hasPopover=hasDetails||locked;
+  const detailId=useId();
   const dragRef=useRef(null);
   const draggedRef=useRef(false);
   const [dragging,setDragging]=useState(false);
-  const [lockOpen,setLockOpen]=useState(false);
+  const [detailOpen,setDetailOpen]=useState(false);
   const onPointerDown=(e)=>{
     if(e.button!==0||e.target.closest('[data-route-action]'))return;
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -61,8 +64,7 @@ function RouteNode({ node, pos, zoom }) {
   };
   const onNodeClick=(e)=>{
     if(draggedRef.current){e.preventDefault();draggedRef.current=false;return;}
-    if(locked){setLockOpen(open=>!open);return;}
-    if(!terminal)node.onToggle();
+    if(hasPopover)setDetailOpen(open=>!open);
   };
   const badgePosition=round?'top-5 right-5':'top-2 right-2';
   const allBlockedLabels=node.blockedBy||[];
@@ -74,25 +76,25 @@ function RouteNode({ node, pos, zoom }) {
   const nodeLabel=terminal
     ?`${node.type}: ${node.label}. Drag to rearrange.`
     :locked
-      ?`${node.type}: ${node.label}. Locked. ${blockedCopy}`
-      :node.done
-        ?`${node.type}: ${node.label}. Complete. Click to mark incomplete.`
-        :node.reachable
-          ?`${node.type}: ${node.label}. Available. Click to mark complete.`
-          :undefined;
+      ?`${node.type}: ${node.label}. Locked. ${blockedCopy} Click for unlock requirements.`
+      :`${node.type}: ${node.label}. ${node.done?'Complete.':node.reachable?'Available.':''} Click for step details.`;
+  const popoverAbove=pos.y+pos.h>520;
+  const detailCopy=node.description&&node.description.trim()!==node.label.trim()?node.description.trim():'';
   return (
-    <div data-route-node onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishDrag} onPointerCancel={finishDrag} className={`group absolute touch-none hover:z-[12] focus-within:z-[12] ${dragging?'z-[14] cursor-grabbing':lockOpen?'z-[12] cursor-grab':'z-[4] cursor-grab'}`} style={{left:pos.x,top:pos.y,width:pos.w,height:pos.h}}>
+    <div data-route-node onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishDrag} onPointerCancel={finishDrag} className={`group absolute touch-none hover:z-[12] focus-within:z-[12] ${dragging?'z-[14] cursor-grabbing':detailOpen?'z-[12] cursor-grab':'z-[4] cursor-grab'}`} style={{left:pos.x,top:pos.y,width:pos.w,height:pos.h}}>
       <button
         onClick={onNodeClick}
         aria-disabled={terminal}
-        aria-expanded={locked?lockOpen:undefined}
+        aria-expanded={hasPopover?detailOpen:undefined}
+        aria-describedby={hasPopover?detailId:undefined}
         aria-label={nodeLabel}
-        title={terminal?'Drag to rearrange':locked?blockedCopy:node.done?'Click to mark incomplete':node.reachable?'Click to mark complete':'Drag to rearrange'}
+        title={terminal?'Drag to rearrange':locked?blockedCopy:'View step details'}
         className={`relative flex h-full w-full flex-col items-center justify-center overflow-hidden border-[1.8px] border-ink-line px-3 text-center shadow-[3px_4px_0_rgba(58,64,69,.14)] transition-[transform,box-shadow] ${round?'rounded-full':'rounded-[15px_10px_16px_11px]'} ${dragging?'cursor-grabbing scale-[1.015]':node.reachable?'cursor-pointer hover:-translate-y-0.5':'cursor-grab'}`}
         style={{background:node.done?color:'#fbfbfa',color:node.done?'#fff':'#2b3034',opacity:locked?.64:1,boxShadow:dragging?`5px 7px 0 rgba(58,64,69,.18), 0 0 0 4px ${color}22`:node.reachable&&!node.done?`3px 4px 0 rgba(58,64,69,.14), 0 0 0 6px ${color}2b`:'3px 4px 0 rgba(58,64,69,.14)'}}
       >
         <span className="mb-1 text-[9px] font-bold uppercase tracking-[.09em]" style={{color:node.done?'rgba(255,255,255,.82)':color}}>{terminal?(node.type==='origin'?'start · you are here': 'destination'):node.type}{node.source==='ai_suggested'?' · ✦':''}</span>
-        <span title={node.label} className={`${terminal?'line-clamp-4 font-hand text-[20px] leading-[1.05]':'line-clamp-5 text-[13px] leading-[1.16]'} max-w-full overflow-hidden font-bold`}>{node.label}</span>
+        <span title={node.label} className={`${terminal?'line-clamp-4 font-hand text-[20px] leading-[1.05]':hasDetails?'line-clamp-3 text-[13px] leading-[1.16]':'line-clamp-5 text-[13px] leading-[1.16]'} max-w-full overflow-hidden font-bold`}>{node.label}</span>
+        {hasDetails&&<span className="mt-1.5 text-[8px] font-bold uppercase tracking-[.06em]" style={{color:node.done?'rgba(255,255,255,.76)':color}}>{node.durationMinutes?`~${node.durationMinutes} min · `:''}details {detailOpen?'↑':'↓'}</span>}
         {!terminal&&node.sourceMaterialIds?.length>0&&<span title={node.sourceTitles?.join(', ')} className="mt-1 text-[8px] font-bold uppercase tracking-[.06em]" style={{color:node.done?'rgba(255,255,255,.76)':'#7a817f'}}>⌁ {node.sourceMaterialIds.length} source{node.sourceMaterialIds.length===1?'':'s'}</span>}
         {terminal&&node.done&&<span title="current position" aria-hidden="true" className={`absolute ${badgePosition} flex h-5 w-5 items-center justify-center rounded-full border border-white/50 bg-white/15 text-[11px] font-bold text-white`}>✓</span>}
         {locked&&<span aria-hidden="true" className={`absolute ${badgePosition} flex h-5 w-5 items-center justify-center rounded-full border border-[#aeb5b8] bg-paper text-muted`}><svg width="10" height="11" viewBox="0 0 10 11" fill="none" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round"><rect x="1.5" y="4.5" width="7" height="5" rx="1.2"/><path d="M3 4.5V3a2 2 0 0 1 4 0v1.5"/></svg></span>}
@@ -107,7 +109,17 @@ function RouteNode({ node, pos, zoom }) {
         className={`absolute ${badgePosition} z-[9] flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-[1.4px] text-[12px] font-bold shadow-[1px_2px_0_rgba(58,64,69,.12)] transition-[transform,box-shadow] hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${node.done?'border-white/55 text-white':'border-accent bg-paper text-accent-deep'}`}
         style={node.done?{background:color}:undefined}
       >✓</button>}
-      {locked&&<div role={lockOpen?'status':undefined} aria-hidden={!lockOpen} className={`pointer-events-none absolute top-full left-1/2 z-[15] mt-2 w-[210px] -translate-x-1/2 rounded-[10px_8px_11px_9px] border-[1.4px] border-ink-line bg-panel px-3 py-2 text-left shadow-[3px_4px_0_rgba(58,64,69,.13)] transition-[opacity,transform] ${lockOpen?'translate-y-0 opacity-100':'translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100'}`}><span className="mb-0.5 block text-[9px] font-bold uppercase tracking-[.08em] text-[#9a6f45]">how to unlock</span><span className="block text-[10px] leading-[1.35] text-ink">{blockedCopy}</span></div>}
+      {hasPopover&&<div id={detailId} role="tooltip" className={`pointer-events-none absolute left-1/2 z-[15] w-[250px] -translate-x-1/2 rounded-[11px_8px_12px_9px] border-[1.4px] border-ink-line bg-panel px-3.5 py-3 text-left shadow-[4px_5px_0_rgba(58,64,69,.14)] transition-[opacity,transform] duration-150 ${popoverAbove?'bottom-full mb-2':'top-full mt-2'} ${detailOpen?'translate-y-0 opacity-100':`${popoverAbove?'-translate-y-1':'translate-y-1'} opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100`}`}>
+        {locked?<><span className="mb-0.5 block text-[9px] font-bold uppercase tracking-[.08em] text-[#9a6f45]">how to unlock</span><span className="block text-[10px] leading-[1.4] text-ink">{blockedCopy}</span></>:<>
+          <span className="mb-1 block text-[9px] font-bold uppercase tracking-[.09em]" style={{color}}>step details</span>
+          {detailCopy&&<span className="block text-[11px] leading-[1.4] text-ink">{detailCopy}</span>}
+          {(node.durationMinutes||node.doneWhen)&&<span className={`${detailCopy?'mt-2 border-t border-dashed border-[#d4d9da] pt-2':''} block text-[10px] leading-[1.4] text-muted-2`}>
+            {node.durationMinutes&&<b className="mr-1.5 whitespace-nowrap text-accent-deep">~{node.durationMinutes} min</b>}
+            {node.doneWhen&&<><b className="text-ink">done when:</b> {node.doneWhen}</>}
+          </span>}
+          {node.sourceTitles?.length>0&&<span className="mt-2 block text-[9px] leading-[1.35] text-muted">⌁ grounded by {node.sourceTitles.join(', ')}</span>}
+        </>}
+      </div>}
       {canAdd&&<button data-route-action onPointerDown={e=>e.stopPropagation()} onClick={node.onAdd} title="add what this unlocks" className="absolute -bottom-5 left-1/2 z-[6] flex h-7 -translate-x-1/2 cursor-pointer items-center gap-1 rounded-full border-[1.4px] border-ink-line bg-panel px-2 text-[10px] font-bold text-ink opacity-75 shadow-[1px_2px_0_rgba(58,64,69,.12)] transition-[opacity,transform] hover:-translate-y-0.5 group-hover:opacity-100">+ next</button>}
     </div>
   );
