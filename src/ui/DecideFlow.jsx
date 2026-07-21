@@ -34,7 +34,7 @@ export default function DecideFlow({ v }) {
                 <span className="text-sm leading-[1.1] text-accent">✦</span><span>{v.neglectNote}</span>
               </div>
             )}
-            <m.button whileTap={{scale:.985}} onClick={v.startShuffle} className="mb-3 flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left text-white bg-accent rounded-[13px_10px_13px_10px] border-[1.6px] border-ink-line shadow-[2px_3px_0_rgba(58,64,69,.18)]">
+            <m.button data-tour="decide-menu" whileTap={{scale:.985}} onClick={v.startShuffle} className="mb-3 flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left text-white bg-accent rounded-[13px_10px_13px_10px] border-[1.6px] border-ink-line shadow-[2px_3px_0_rgba(58,64,69,.18)]">
               <svg width="26" height="26" viewBox="0 0 16 16" className="flex-none"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="none" stroke="#fff" strokeWidth="1.5"/><circle cx="5" cy="5" r="1.3" fill="#fff"/><circle cx="11" cy="5" r="1.3" fill="#fff"/><circle cx="8" cy="8" r="1.3" fill="#fff"/><circle cx="5" cy="11" r="1.3" fill="#fff"/><circle cx="11" cy="11" r="1.3" fill="#fff"/></svg>
               <span><span className="block text-base font-bold">just pick for me</span><span className="text-xs opacity-90">weighs calling, continuity, and quiet threads</span></span>
             </m.button>

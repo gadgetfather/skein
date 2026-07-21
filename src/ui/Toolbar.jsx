@@ -4,7 +4,7 @@ import React from 'react';
 // centered, keyboard-shortcut hint bottom-right, full label in a styled
 // tooltip on hover. `accent` marks the primary action, `active` the
 // engaged tool.
-function ToolButton({ title, hint, active, accent, wide, onClick, children }) {
+function ToolButton({ title, hint, active, accent, wide, tour, onClick, children }) {
   const tone = accent
     ? 'bg-accent text-white shadow-[2px_2px_0_rgba(58,64,69,.18)]'
     : active
@@ -14,6 +14,7 @@ function ToolButton({ title, hint, active, accent, wide, onClick, children }) {
     <button
       onClick={onClick}
       aria-label={title}
+      data-tour={tour}
       className={`group relative flex h-10 ${wide ? 'min-w-12 px-1.5' : 'w-10'} flex-none cursor-pointer items-center justify-center rounded-[10px_8px_11px_8px] border-[1.5px] border-ink-line ${tone}`}
     >
       {children}
@@ -72,8 +73,12 @@ export default function Toolbar({ v }) {
         <svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1.4" y="1.4" width="11.2" height="11.2" rx="3" strokeDasharray="2.6 2"/></svg>
       </ToolButton>
       <Divider />
-      <ToolButton accent title="decide for me (D)" hint="D" onClick={v.openDecide}>
+      <ToolButton accent title="decide for me (D)" hint="D" tour="decide-control" onClick={v.openDecide}>
         <svg width="17" height="17" viewBox="0 0 16 16"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="none" stroke="currentColor" strokeWidth="1.5"/><circle cx="5" cy="5" r="1.3" fill="currentColor"/><circle cx="11" cy="5" r="1.3" fill="currentColor"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="5" cy="11" r="1.3" fill="currentColor"/><circle cx="11" cy="11" r="1.3" fill="currentColor"/></svg>
+      </ToolButton>
+      <Divider />
+      <ToolButton title="show walkthrough" tour="walkthrough-replay" onClick={v.startWalkthrough}>
+        <span className="font-hand text-xl font-bold leading-none">?</span>
       </ToolButton>
     </div>
   );

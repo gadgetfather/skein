@@ -72,7 +72,7 @@ function DetailDrawerContent({ v }) {
           </div>
         </section>
 
-        <section aria-labelledby="direction-heading" className="mb-4">
+        <section data-tour="thread-direction" aria-labelledby="direction-heading" className="mb-4">
           <div className="mb-2 flex items-center justify-between gap-3">
             <h2 id="direction-heading" className="text-[11px] font-semibold uppercase tracking-[.08em] text-muted">direction</h2>
             <span className="flex items-center gap-1 font-hand text-[15px] font-semibold text-accent-deep"><span>{direction.icon}</span>{direction.label}</span>

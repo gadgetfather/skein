@@ -10,6 +10,7 @@ import ExpandedDetail from './ui/ExpandedDetail';
 import FocusOverlay from './ui/FocusOverlay';
 import Onboarding from './ui/Onboarding';
 import RouteMap from './ui/RouteMap';
+import Walkthrough from './ui/Walkthrough';
 import { canvasDocumentFromState, normalizeCanvasDocument } from './lib/canvas-document';
 import { getSupabaseBrowserClient } from './lib/supabase/client';
 
@@ -46,6 +47,7 @@ export default class App extends React.Component {
     let saved = cloudDocument?.nodes || null;
     if (!cloudDocument) try { saved = JSON.parse(localStorage.getItem('skein.nodes.v1')); } catch(e){}
     const firstRun = !(Array.isArray(saved) && saved.length);
+    try { this.walkthroughDone = localStorage.getItem('skein.walkthrough.v1') === 'done'; } catch(e) { this.walkthroughDone = false; }
     let initial = firstRun ? [] : saved;
     const validClusters = new Set(['learn','craft','body','other']);
     initial = initial.map(n => this.normalizeNode(validClusters.has(n.cluster) ? n : { ...n, cluster: this.classify(n) }));
@@ -78,6 +80,7 @@ export default class App extends React.Component {
       chosenId:null, resultOpen:false, chosenReason:'', chosenStep:'', chosenDoneWhen:'', chosenDuration:null, chosenStepSource:'', chosenStepBusy:false, chosenRouteNodeId:null, chosenWhy:'', chosenCombo:'', chosenComboPartner:'', decideMode:null, excluded:[],
       filters:{ time:null, energy:null, mood:null },
       focusStepText:'', focusRouteNodeId:null,
+      walkthroughStep:-1,
     };
     this.clusterMeta = { mind:'mind & language', build:'build & ship', body:'body & fuel' };
     this.NW = 154; this.NHc = 48; // node width, half-height (fixed node height 96)
@@ -118,7 +121,7 @@ export default class App extends React.Component {
     this._ht = setInterval(()=>{ if(!this.state.showOnboarding) return; this.setState({hOpacity:0}); setTimeout(()=>this.setState(st=>({hIndex:(st.hIndex+1)%this.headlines.length, hOpacity:1})),420); }, 4200);
     this.applyRoute(this.props.pathname);
   }
-  componentWillUnmount(){ if(this._spin) clearInterval(this._spin); if(this._ht) clearInterval(this._ht); if(this._micNote) clearTimeout(this._micNote); if(this._rec){ try{ this._rec.stop(); }catch(e){} } if(this._pomo) clearInterval(this._pomo); if(this._focus) clearInterval(this._focus); if(this._onKey) window.removeEventListener('keydown', this._onKey); if(this._onKeyUp) window.removeEventListener('keyup', this._onKeyUp); if(this._onBlur) window.removeEventListener('blur', this._onBlur); }
+  componentWillUnmount(){ if(this._spin) clearInterval(this._spin); if(this._ht) clearInterval(this._ht); if(this._micNote) clearTimeout(this._micNote); if(this._walkthroughTimer) clearTimeout(this._walkthroughTimer); if(this._rec){ try{ this._rec.stop(); }catch(e){} } if(this._pomo) clearInterval(this._pomo); if(this._focus) clearInterval(this._focus); if(this._onKey) window.removeEventListener('keydown', this._onKey); if(this._onKeyUp) window.removeEventListener('keyup', this._onKeyUp); if(this._onBlur) window.removeEventListener('blur', this._onBlur); }
   parseInterests(text){
     let t=(text||'').replace(/^\s*(i\s+want\s+to|i'd\s+like\s+to|i\s+wanna|help\s+me|i\s+need\s+to|i\s+keep\s+meaning\s+to)\s+/i,'');
     const parts=t.split(/\s*(?:,|;|\band\b|&|\+|\/|\n|\bplus\b)\s*/i).map(p=>p.trim()).filter(Boolean);
@@ -184,7 +187,7 @@ export default class App extends React.Component {
       const nodes=order.map((orig,i)=>{ const it=items[orig]; const col=i%cols,row=Math.floor(i/cols); return this.normalizeNode({ id:'w'+now+i, ...it, x:Math.round(startX+col*gapX+(Math.random()*20-10)), y:Math.round(startY+row*gapY+(Math.random()*20-10)) }); });
       const seen=new Set();
       const edges=(woven.edges||[]).filter(e=>e && Number.isInteger(e.a) && Number.isInteger(e.b) && e.a!==e.b && items[e.a] && items[e.b]).map(e=>({ a:nodes[posOf[e.a]].id, b:nodes[posOf[e.b]].id })).filter(e=>{ const k=[e.a,e.b].sort().join('|'); if(seen.has(k)) return false; seen.add(k); return true; });
-      this.setState({ nodes, edges, showOnboarding:false, onbFading:false, weaving:false, inputVal:'' });
+      this.setState({ nodes, edges, showOnboarding:false, onbFading:false, weaving:false, inputVal:'' },this.scheduleFirstWalkthrough);
     },420);
   };
   loadExample=()=>{
@@ -194,14 +197,56 @@ export default class App extends React.Component {
       const nodes=this.seed.map(n=>this.normalizeNode({ ...n, cluster: valid.has(n.cluster)?n.cluster:this.classify(n) }));
       this.setState({ nodes, edges:this.seedEdges.map(([a,b])=>({a,b})), showOnboarding:false, onbFading:false },()=>{
         if(typeof window!=='undefined'&&window.matchMedia('(max-width: 767px)').matches)this.zoomReset();
+        this.scheduleFirstWalkthrough();
       });
     },420);
+  };
+
+  scheduleFirstWalkthrough=()=>{
+    if(this.walkthroughDone||!this.state.nodes.length)return;
+    if(this._walkthroughTimer)clearTimeout(this._walkthroughTimer);
+    this._walkthroughTimer=setTimeout(()=>{this._walkthroughTimer=null;this.startWalkthrough();},460);
+  };
+  startWalkthrough=()=>{
+    if(!this.state.nodes.length)return;
+    if(this._spin){clearInterval(this._spin);this._spin=null;}
+    this._decisionRequest++;
+    this.setState({walkthroughStep:0,selectedId:null,selectedIds:[],expandedId:null,routeMapOpenId:null,routeMaterialsOpen:false,phase:null,resultOpen:false,spinning:false,spinId:null,dumpOpen:false,adding:false},()=>this.go('/canvas'));
+  };
+  rememberWalkthrough=()=>{
+    this.walkthroughDone=true;
+    try{localStorage.setItem('skein.walkthrough.v1','done');}catch(e){}
+  };
+  advanceWalkthrough=()=>{
+    const step=this.state.walkthroughStep;
+    if(step===0){
+      const node=this.state.nodes.find(n=>!['harvested','released'].includes(n.season))||this.state.nodes[0];
+      if(!node){this.skipWalkthrough();return;}
+      this.setState({walkthroughStep:1},()=>this.openInterest(node.id));
+      return;
+    }
+    if(step===1){
+      this.setState({walkthroughStep:2,selectedId:null,selectedIds:[]},()=>this.go('/canvas'));
+      return;
+    }
+    if(step===2){
+      this.setState({walkthroughStep:3},this.openDecide);
+    }
+  };
+  skipWalkthrough=()=>{
+    this.rememberWalkthrough();
+    this.setState({walkthroughStep:-1,selectedId:null,selectedIds:[],phase:null,resultOpen:false},()=>this.go('/canvas'));
+  };
+  completeWalkthrough=()=>{
+    this.rememberWalkthrough();
+    this.setState({walkthroughStep:-1});
   };
   handleKey = (e) => {
     const tgt = e.target;
     if (tgt && (tgt.tagName==='INPUT' || tgt.tagName==='TEXTAREA' || tgt.isContentEditable)) return;
     const s = this.state;
     if (s.showOnboarding) return;
+    if (s.walkthroughStep>=0) { if(e.key==='Escape'){e.preventDefault();this.skipWalkthrough();} return; }
     if (e.key === ' ' || e.code === 'Space') { // hold space to pan the canvas (Figma-style)
       e.preventDefault();
       if (!this._spaceHeld) { this._spaceHeld = true; this.setState({ spacePan:true }); }
@@ -1059,6 +1104,7 @@ export default class App extends React.Component {
     const cx = n => n.x + this.NW/2;
     const cy = n => n.y + this.NHc;
 
+    const tourNode=s.nodes.find(n=>!['harvested','released'].includes(n.season))||s.nodes[0];
     const nodes = s.nodes.map(n => {
       const chosen = s.chosenId === n.id;
       const active = s.spinning && s.spinId === n.id;
@@ -1071,7 +1117,7 @@ export default class App extends React.Component {
       const gcolor = this.groupColor(n.cluster);
       const directionBadge=n.directionState==='directed'?{icon:'↗',label:'directed'}:n.directionState==='open'?{icon:'∞',label:'open-ended'}:{icon:'?',label:'unclear'};
       return {
-        ...n, chosen, color:gcolor, directionBadge, routeCount:n.routeMap?(n.routeMap.nodes||[]).filter(x=>!['origin','destination'].includes(x.type)).length:0,
+        ...n, chosen, color:gcolor, directionBadge, tourTarget:n.id===tourNode?.id, routeCount:n.routeMap?(n.routeMap.nodes||[]).filter(x=>!['origin','destination'].includes(x.type)).length:0,
         shadow,
         anim: chosen && !s.spinning ? 'callPulse 3s ease-in-out infinite' : 'none',
         opacity:n.season==='resting'?.62:1,
@@ -1236,6 +1282,7 @@ export default class App extends React.Component {
       onbInput:this.onbInput, onbKey:this.onbKey, weave:this.weave, loadExample:this.loadExample, toggleMic:this.toggleMic,
       micBg:s.listening?'#7a9a6f':'#f7f8f8', micStroke:s.listening?'#ffffff':'#3a4045', micAnim:s.listening?'micPulse 1.4s ease-in-out infinite':'none', micNote:s.weaving?'untangling your thoughts\u2026':(s.micUnsupported?'voice input needs Chrome or Edge \u2014 just type instead':(s.listening?'listening\u2026 speak your tangle of thoughts':'')),
       onbChips:this.examples.map(ex=>({short:ex.short,onClick:()=>this.fillExample(ex.full)})),
+      walkthroughStep:s.walkthroughStep,startWalkthrough:this.startWalkthrough,advanceWalkthrough:this.advanceWalkthrough,skipWalkthrough:this.skipWalkthrough,completeWalkthrough:this.completeWalkthrough,
       route,
     };
   }
@@ -1303,7 +1350,7 @@ export default class App extends React.Component {
 
             {/* nodes */}
             {v.nodes.map(n => (
-              <div key={n.id} onPointerDown={n.onDown} onDoubleClick={n.onExpand} className="absolute z-[5] flex h-24 w-[154px] cursor-grab touch-none flex-col rounded-[11px_8px_12px_7px] border-[1.6px] border-ink-line bg-paper-2 px-[13px] py-[11px]" style={{ left: n.x, top: n.y, boxShadow: n.shadow, animation: n.anim, opacity:n.opacity }}>
+              <div key={n.id} data-tour={n.tourTarget?'interest-card':undefined} onPointerDown={n.onDown} onDoubleClick={n.onExpand} className="absolute z-[5] flex h-24 w-[154px] cursor-grab touch-none flex-col rounded-[11px_8px_12px_7px] border-[1.6px] border-ink-line bg-paper-2 px-[13px] py-[11px]" style={{ left: n.x, top: n.y, boxShadow: n.shadow, animation: n.anim, opacity:n.opacity }}>
                 {n.chosen && (
                   <div className="absolute -top-[11px] -right-2 rounded-[9px_7px_9px_6px] bg-accent px-2 py-0.5 text-[10px] font-semibold text-white shadow-[1px_2px_0_rgba(58,64,69,.15)]">start here</div>
                 )}
@@ -1375,6 +1422,7 @@ export default class App extends React.Component {
         <ExpandedDetail v={v}/>
         <FocusOverlay v={v}/>
         <Onboarding v={v}/>
+        <Walkthrough v={v}/>
       </div>
     );
   }

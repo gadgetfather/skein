@@ -57,7 +57,7 @@ Skein calls **GPT-5.6** (default `openai/gpt-5.6-terra`, configurable via `OPENR
 
 - `src/app/` — App Router pages: `page.jsx` (landing), `canvas/page.jsx`, `design/page.jsx`, `layout.jsx` (fonts + metadata), and `globals.css` (reset + keyframes).
 - `src/App.jsx` — canvas application logic + canvas render.
-- `src/ui/` — canvas surfaces: Toolbar, DecideFlow, BrainDump, DetailDrawer, ExpandedDetail, RouteMap, RouteMaterials, AccountSync, FocusOverlay, Onboarding.
+- `src/ui/` — canvas surfaces: Toolbar, DecideFlow, BrainDump, DetailDrawer, ExpandedDetail, RouteMap, RouteMaterials, AccountSync, FocusOverlay, Onboarding, Walkthrough.
 - `src/lib/canvas-document.js` — versioned local/cloud canvas document helpers and sync metadata.
 - `src/lib/supabase/` — browser client and local-first account sync orchestration.
 - `supabase/migrations/` — Postgres schema, grants, trigger, and RLS policies.
